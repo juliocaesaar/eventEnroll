@@ -39,8 +39,10 @@ export class EventController {
         });
       }
 
-      // Convert string dates to Date objects
+      // Convert and validate input data
       const bodyData = { ...req.body };
+      
+      // Convert string dates to Date objects
       if (bodyData.startDate && typeof bodyData.startDate === 'string') {
         bodyData.startDate = new Date(bodyData.startDate);
       }
@@ -48,10 +50,42 @@ export class EventController {
         bodyData.endDate = new Date(bodyData.endDate);
       }
       
+      // Validate categoryId exists and is not empty
+      if (!bodyData.categoryId || bodyData.categoryId.trim() === '') {
+        return res.status(400).json({ 
+          message: "Categoria é obrigatória",
+          errors: [{ path: ['categoryId'], message: 'Category ID is required' }]
+        });
+      }
+      
+      // Validate dates are valid
+      if (bodyData.startDate && isNaN(bodyData.startDate.getTime())) {
+        return res.status(400).json({ 
+          message: "Data de início inválida",
+          errors: [{ path: ['startDate'], message: 'Invalid start date' }]
+        });
+      }
+      
+      if (bodyData.endDate && isNaN(bodyData.endDate.getTime())) {
+        return res.status(400).json({ 
+          message: "Data de fim inválida",
+          errors: [{ path: ['endDate'], message: 'Invalid end date' }]
+        });
+      }
+      
+      // Log for debugging
+      console.log('Creating event with data:', {
+        title: bodyData.title,
+        categoryId: bodyData.categoryId,
+        startDate: bodyData.startDate,
+        endDate: bodyData.endDate,
+        capacity: bodyData.capacity
+      });
+      
       const eventData = insertEventSchema.parse({
         ...bodyData,
         organizerId: userId,
-        slug: generateSlug(req.body.title),
+        slug: generateSlug(req.body.title || 'event'),
       });
       
       const event = await storage.createEvent(eventData);
@@ -99,13 +133,30 @@ export class EventController {
         return res.status(403).json({ message: "Access denied" });
       }
       
-      // Convert string dates to Date objects for updates
+      // Convert and validate update data
       const bodyData = { ...req.body };
+      
+      // Convert string dates to Date objects for updates
       if (bodyData.startDate && typeof bodyData.startDate === 'string') {
         bodyData.startDate = new Date(bodyData.startDate);
       }
       if (bodyData.endDate && typeof bodyData.endDate === 'string') {
         bodyData.endDate = new Date(bodyData.endDate);
+      }
+      
+      // Validate dates if provided
+      if (bodyData.startDate && isNaN(bodyData.startDate.getTime())) {
+        return res.status(400).json({ 
+          message: "Data de início inválida",
+          errors: [{ path: ['startDate'], message: 'Invalid start date' }]
+        });
+      }
+      
+      if (bodyData.endDate && isNaN(bodyData.endDate.getTime())) {
+        return res.status(400).json({ 
+          message: "Data de fim inválida",
+          errors: [{ path: ['endDate'], message: 'Invalid end date' }]
+        });
       }
       
       const updateData = insertEventSchema.partial().parse(bodyData);

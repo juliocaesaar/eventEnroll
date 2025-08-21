@@ -96,6 +96,7 @@ export default function EventEditor() {
   });
 
   const handleSave = () => {
+    // Frontend validation
     if (!eventData.title?.trim()) {
       toast({
         title: "Título obrigatório",
@@ -104,19 +105,56 @@ export default function EventEditor() {
       });
       return;
     }
+    
+    if (!eventData.categoryId) {
+      toast({
+        title: "Categoria obrigatória",
+        description: "Por favor, selecione uma categoria para o evento.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    if (!eventData.startDate) {
+      toast({
+        title: "Data de início obrigatória",
+        description: "Por favor, defina a data de início do evento.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    if (!eventData.endDate) {
+      toast({
+        title: "Data de fim obrigatória",
+        description: "Por favor, defina a data de fim do evento.",
+        variant: "destructive",
+      });
+      return;
+    }
 
-    saveEventMutation.mutate(eventData);
+    // Prepare data for submission
+    const submitData = {
+      ...eventData,
+      capacity: parseInt(eventData.capacity) || 100,
+      // Make sure dates are in ISO format
+      startDate: eventData.startDate ? new Date(eventData.startDate).toISOString() : null,
+      endDate: eventData.endDate ? new Date(eventData.endDate).toISOString() : null,
+    };
+    
+    console.log('Submitting event data:', submitData);
+    saveEventMutation.mutate(submitData);
   };
 
   const handleInputChange = (field: string, value: any) => {
-    setEventData(prev => ({
+    setEventData((prev: any) => ({
       ...prev,
       [field]: value,
     }));
   };
 
   const handleComponentsChange = (components: any[]) => {
-    setEventData(prev => ({
+    setEventData((prev: any) => ({
       ...prev,
       pageComponents: components,
     }));
@@ -243,8 +281,9 @@ export default function EventEditor() {
                     <Select 
                       value={eventData.categoryId || ''} 
                       onValueChange={(value) => handleInputChange('categoryId', value)}
+                      required
                     >
-                      <SelectTrigger data-testid="select-event-category">
+                      <SelectTrigger data-testid="select-event-category" className={!eventData.categoryId ? 'border-red-300' : ''}>
                         <SelectValue placeholder="Selecione uma categoria" />
                       </SelectTrigger>
                       <SelectContent>
@@ -255,6 +294,9 @@ export default function EventEditor() {
                         )) : null}
                       </SelectContent>
                     </Select>
+                    {!eventData.categoryId && (
+                      <p className="text-sm text-red-600 mt-1">Categoria é obrigatória</p>
+                    )}
                   </div>
 
                   <div className="grid grid-cols-2 gap-4">
@@ -266,6 +308,8 @@ export default function EventEditor() {
                         value={eventData.startDate || ''}
                         onChange={(e) => handleInputChange('startDate', e.target.value)}
                         data-testid="input-event-start-date"
+                        required
+                        className={!eventData.startDate ? 'border-red-300' : ''}
                       />
                     </div>
                     <div>
@@ -276,6 +320,8 @@ export default function EventEditor() {
                         value={eventData.endDate || ''}
                         onChange={(e) => handleInputChange('endDate', e.target.value)}
                         data-testid="input-event-end-date"
+                        required
+                        className={!eventData.endDate ? 'border-red-300' : ''}
                       />
                     </div>
                   </div>
