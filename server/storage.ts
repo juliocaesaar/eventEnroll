@@ -226,6 +226,11 @@ export class DatabaseStorage implements IStorage {
     return ticket;
   }
 
+  async getTicketById(id: string): Promise<Ticket | undefined> {
+    const [ticket] = await db.select().from(tickets).where(eq(tickets.id, id));
+    return ticket;
+  }
+
   async deleteTicket(id: string): Promise<void> {
     await db.delete(tickets).where(eq(tickets.id, id));
   }

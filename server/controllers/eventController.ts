@@ -470,20 +470,62 @@ export class EventController {
         return res.status(404).json({ message: "Event not found" });
       }
       
-      const registrationData = insertRegistrationSchema.parse({
-        ...req.body,
-        eventId: req.params.eventId,
-      });
+      const { name, email, phone, document, tickets } = req.body;
       
-      const registration = await storage.createRegistration(registrationData);
-      res.json(registration);
+      if (!name || !email || !tickets || tickets.length === 0) {
+        return res.status(400).json({ message: "Missing required fields" });
+      }
+      
+      const registrations = [];
+      let totalAmount = 0;
+      
+      // Process each ticket type and quantity
+      for (const ticketRequest of tickets) {
+        const ticket = await storage.getTicket(ticketRequest.ticketId);
+        if (!ticket) {
+          return res.status(404).json({ message: `Ticket not found: ${ticketRequest.ticketId}` });
+        }
+        
+        totalAmount += parseFloat(ticket.price || '0') * ticketRequest.quantity;
+        
+        // Create registration for each ticket quantity
+        for (let i = 0; i < ticketRequest.quantity; i++) {
+          const registration = await storage.createRegistration({
+            eventId: event.id,
+            ticketId: ticket.id,
+            email: email,
+            firstName: name.split(' ')[0] || name,
+            lastName: name.split(' ').slice(1).join(' ') || '',
+            phoneNumber: phone,
+            customFields: { document: document },
+            status: totalAmount > 0 ? 'pending_payment' : 'confirmed',
+            amountPaid: parseFloat(ticket.price || '0'),
+          });
+          registrations.push(registration);
+        }
+      }
+      
+      // For paid events, create mock payment (in production, integrate with Asaas)
+      // Mock payment flow - in real implementation, create Asaas payment and return URL
+      const mockPaymentId = `pay_${Date.now()}`;
+      const mockPaymentUrl = `/payment/mock?amount=${totalAmount}&id=${mockPaymentId}&eventSlug=${event.slug}`;
+      
+      res.json({ 
+        success: true,
+        paymentUrl: mockPaymentUrl,
+        paymentId: mockPaymentId,
+        totalAmount,
+        registrations 
+      });
     } catch (error) {
       console.error("Error creating registration:", error);
       if (error instanceof z.ZodError) {
-        res.status(400).json({ message: "Invalid registration data", errors: error.errors });
-      } else {
-        res.status(500).json({ message: "Failed to create registration" });
+        return res.status(400).json({ 
+          message: "Invalid registration data",
+          errors: error.errors 
+        });
       }
+      res.status(500).json({ message: "Failed to create registration" });
     }
   }
 
