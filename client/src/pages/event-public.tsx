@@ -38,7 +38,7 @@ export default function EventPublic() {
     mutationFn: async (data: any) => {
       return apiRequest('POST', `/api/public/events/${params.slug}/register`, data);
     },
-    onSuccess: (response) => {
+    onSuccess: (response: any) => {
       toast({
         title: "Inscrição realizada!",
         description: response.paymentUrl 
@@ -50,7 +50,7 @@ export default function EventPublic() {
         window.location.href = response.paymentUrl;
       }
     },
-    onError: (error) => {
+    onError: (error: any) => {
       toast({
         title: "Erro na inscrição",
         description: error.message,
@@ -69,7 +69,7 @@ export default function EventPublic() {
   const calculateTotal = () => {
     let total = 0;
     Object.entries(selectedTickets).forEach(([ticketId, quantity]) => {
-      const ticket = tickets.find((t: any) => t.id === ticketId);
+      const ticket = (tickets as any[]).find((t: any) => t.id === ticketId);
       if (ticket) {
         total += parseFloat(ticket.price || 0) * quantity;
       }
@@ -139,18 +139,20 @@ export default function EventPublic() {
     );
   }
 
+  const eventData = event as any;
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Hero Section */}
       <div className="bg-white">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
           <div className="text-center">
-            <Badge className="mb-4">{event.category?.name}</Badge>
+            <Badge className="mb-4">{eventData.category?.name}</Badge>
             <h1 className="text-4xl font-bold text-gray-900 mb-6" data-testid="text-event-title">
-              {event.title}
+              {eventData.title}
             </h1>
             <p className="text-xl text-gray-600 mb-8" data-testid="text-event-description">
-              {event.description}
+              {eventData.description}
             </p>
             
             <div className="grid md:grid-cols-3 gap-6 max-w-2xl mx-auto">
@@ -158,16 +160,16 @@ export default function EventPublic() {
                 <Calendar className="w-5 h-5 text-primary" />
                 <div className="text-sm">
                   <div className="font-medium">Início</div>
-                  <div className="text-gray-600">{formatDate(event.startDate)}</div>
+                  <div className="text-gray-600">{formatDate(eventData.startDate)}</div>
                 </div>
               </div>
               
-              {event.endDate && (
+              {eventData.endDate && (
                 <div className="flex items-center justify-center space-x-2">
                   <Clock className="w-5 h-5 text-primary" />
                   <div className="text-sm">
                     <div className="font-medium">Fim</div>
-                    <div className="text-gray-600">{formatDate(event.endDate)}</div>
+                    <div className="text-gray-600">{formatDate(eventData.endDate)}</div>
                   </div>
                 </div>
               )}
@@ -176,7 +178,7 @@ export default function EventPublic() {
                 <Users className="w-5 h-5 text-primary" />
                 <div className="text-sm">
                   <div className="font-medium">Capacidade</div>
-                  <div className="text-gray-600">{event.capacity} pessoas</div>
+                  <div className="text-gray-600">{eventData.capacity} pessoas</div>
                 </div>
               </div>
             </div>
@@ -196,12 +198,12 @@ export default function EventPublic() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              {tickets.length === 0 ? (
+              {(tickets as any[]).length === 0 ? (
                 <div className="text-center py-8">
                   <p className="text-gray-600">Nenhum ingresso disponível no momento.</p>
                 </div>
               ) : (
-                tickets.map((ticket: any) => (
+                (tickets as any[]).map((ticket: any) => (
                   <div key={ticket.id} className="border rounded-lg p-4" data-testid={`ticket-option-${ticket.id}`}>
                     <div className="flex justify-between items-start mb-3">
                       <div>
@@ -241,7 +243,7 @@ export default function EventPublic() {
                 ))
               )}
               
-              {tickets.length > 0 && (
+              {(tickets as any[]).length > 0 && (
                 <div className="border-t pt-4">
                   <div className="flex justify-between items-center">
                     <span className="text-lg font-semibold">Total:</span>
@@ -312,7 +314,7 @@ export default function EventPublic() {
                 className="w-full" 
                 size="lg"
                 onClick={handleRegister}
-                disabled={registerMutation.isPending || tickets.length === 0}
+                disabled={registerMutation.isPending || (tickets as any[]).length === 0}
                 data-testid="button-register"
               >
                 {registerMutation.isPending ? 'Processando...' : 
@@ -328,14 +330,13 @@ export default function EventPublic() {
       </div>
 
       {/* Event Content */}
-      {event.pageComponents && event.pageComponents.length > 0 && (
+      {eventData.pageComponents && eventData.pageComponents.length > 0 && (
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
           <Card>
             <CardContent className="p-8">
               <h2 className="text-2xl font-bold mb-6">Sobre o Evento</h2>
-              {/* Render page components here */}
               <div className="space-y-6">
-                {event.pageComponents.map((component: any, index: number) => (
+                {eventData.pageComponents.map((component: any, index: number) => (
                   <div key={index} data-testid={`component-${component.type}-${index}`}>
                     {component.type === 'header' && (
                       <div className="text-center">
@@ -347,12 +348,28 @@ export default function EventPublic() {
                     )}
                     {component.type === 'text' && (
                       <div className="prose max-w-none">
-                        <p>{component.props?.content}</p>
+                        <p className={component.props?.size === 'large' ? 'text-lg' : component.props?.size === 'small' ? 'text-sm' : 'text-base'}>
+                          {component.props?.content}
+                        </p>
+                      </div>
+                    )}
+                    {component.type === 'image' && component.props?.src && (
+                      <div className="text-center">
+                        <img 
+                          src={component.props.src} 
+                          alt={component.props.alt || 'Imagem do evento'}
+                          className="max-w-full h-auto mx-auto rounded-lg shadow-md"
+                          style={{ width: component.props.width || '100%' }}
+                        />
                       </div>
                     )}
                     {component.type === 'button' && (
                       <div className="text-center">
-                        <Button size="lg" className={component.props?.variant === 'secondary' ? 'bg-secondary' : ''}>
+                        <Button 
+                          size="lg" 
+                          className={component.props?.variant === 'secondary' ? 'bg-secondary' : ''}
+                          onClick={() => component.props?.link && window.open(component.props.link, '_blank')}
+                        >
                           {component.props?.text}
                         </Button>
                       </div>

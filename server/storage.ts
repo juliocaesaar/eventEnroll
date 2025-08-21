@@ -236,13 +236,41 @@ export class DatabaseStorage implements IStorage {
     return registration;
   }
 
-  async updateRegistration(id: string, data: Partial<Registration>): Promise<Registration> {
+  async updateRegistration(id: string, data: Partial<InsertRegistrationSchema>): Promise<Registration> {
     const [registration] = await db
       .update(registrations)
       .set({ ...data, updatedAt: new Date() })
       .where(eq(registrations.id, id))
       .returning();
     return registration;
+  }
+  
+  async getEventAnalytics(eventId: string): Promise<any> {
+    // Get registrations and calculate analytics
+    const registrations = await this.getEventRegistrations(eventId);
+    const tickets = await this.getEventTickets(eventId);
+    
+    const totalRegistrations = registrations.length;
+    const totalRevenue = registrations.reduce((sum: number, reg: any) => sum + parseFloat(reg.amount || 0), 0);
+    const avgTicketValue = totalRevenue / (totalRegistrations || 1);
+    
+    return {
+      overview: {
+        totalRegistrations,
+        totalRevenue,
+        avgTicketValue,
+        conversionRate: 8.5, // Mock
+        registrationsGrowth: 12.5, // Mock
+        revenueGrowth: 18.2 // Mock
+      },
+      ticketTypes: tickets.map((ticket: any) => ({
+        name: ticket.name,
+        sold: ticket.sold || 0,
+        revenue: (ticket.sold || 0) * parseFloat(ticket.price || 0)
+      })),
+      registrationsByDay: [], // Mock
+      trafficSources: [] // Mock
+    };
   }
   
   // Category operations

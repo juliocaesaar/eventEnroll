@@ -361,10 +361,11 @@ export class EventController {
           const registration = await storage.createRegistration({
             eventId: event.id,
             ticketId: ticket.id,
-            attendeeName: name,
-            attendeeEmail: email,
-            attendeePhone: phone,
-            attendeeDocument: document,
+            email: email,
+            firstName: name.split(' ')[0] || name,
+            lastName: name.split(' ').slice(1).join(' ') || '',
+            phoneNumber: phone,
+            customFields: { document: document },
             status: totalAmount > 0 ? 'pending_payment' : 'confirmed',
             amount: parseFloat(ticket.price || '0'),
           });
@@ -387,13 +388,15 @@ export class EventController {
         return;
       }
       
-      // For paid events, integrate with Asaas payment
-      // This would create a payment link and return it
-      const paymentUrl = `https://payment.asaas.com/checkout/${registrations[0].id}`; // Mock URL
+      // For paid events, create mock payment (in production, integrate with Asaas)
+      // Mock payment flow - in real implementation, create Asaas payment and return URL
+      const mockPaymentId = `pay_${Date.now()}`;
+      const mockPaymentUrl = `/payment/mock?amount=${totalAmount}&id=${mockPaymentId}&eventSlug=${event.slug}`;
       
       res.json({ 
         success: true,
-        paymentUrl,
+        paymentUrl: mockPaymentUrl,
+        paymentId: mockPaymentId,
         totalAmount,
         registrations 
       });
@@ -403,26 +406,6 @@ export class EventController {
     }
   }
   
-  // Registration methods
-  static async getEventRegistrations(req: any, res: Response) {
-    try {
-      const event = await storage.getEvent(req.params.eventId);
-      if (!event) {
-        return res.status(404).json({ message: "Event not found" });
-      }
-      
-      const userId = req.user.claims.sub;
-      if (event.organizerId !== userId) {
-        return res.status(403).json({ message: "Access denied" });
-      }
-      
-      const registrations = await storage.getEventRegistrations(req.params.eventId);
-      res.json(registrations);
-    } catch (error) {
-      console.error("Error fetching registrations:", error);
-      res.status(500).json({ message: "Failed to fetch registrations" });
-    }
-  }
   
   static async getEventAnalytics(req: any, res: Response) {
     try {
@@ -498,25 +481,6 @@ export class EventController {
     }
   }
 
-  static async getEventAnalytics(req: any, res: Response) {
-    try {
-      const event = await storage.getEvent(req.params.eventId);
-      if (!event) {
-        return res.status(404).json({ message: "Event not found" });
-      }
-      
-      const userId = req.user.claims.sub;
-      if (event.organizerId !== userId) {
-        return res.status(403).json({ message: "Access denied" });
-      }
-      
-      const analytics = await storage.getEventAnalytics(req.params.eventId);
-      res.json(analytics);
-    } catch (error) {
-      console.error("Error fetching analytics:", error);
-      res.status(500).json({ message: "Failed to fetch analytics" });
-    }
-  }
 
   static async checkinParticipant(req: any, res: Response) {
     try {
@@ -556,7 +520,7 @@ export class EventController {
         return res.status(403).json({ message: "Access denied" });
       }
       
-      console.log(`📧 Sending reminder to ${registration.attendeeEmail} for event ${event.title}`);
+      console.log(`📧 Sending reminder to ${registration.email} for event ${event?.title}`);
       
       res.json({ success: true, message: "Reminder sent successfully" });
     } catch (error) {
@@ -582,12 +546,12 @@ export class EventController {
       
       if (format === 'csv') {
         const csvData = registrations.map((reg: any) => [
-          reg.attendeeName,
-          reg.attendeeEmail,
-          reg.attendeePhone || '',
-          reg.attendeeDocument || '',
+          `${reg.firstName} ${reg.lastName}`,
+          reg.email,
+          reg.phoneNumber || '',
+          reg.customFields?.document || '',
           reg.ticket?.name || '',
-          `R$ ${parseFloat(reg.amount || 0).toFixed(2)}`,
+          `R$ ${parseFloat(reg.amountPaid || 0).toFixed(2)}`,
           reg.status,
           reg.qrCode,
           new Date(reg.createdAt).toLocaleDateString('pt-BR')
@@ -618,6 +582,95 @@ export class EventController {
     } catch (error) {
       console.error("Error exporting participants:", error);
       res.status(500).json({ message: "Failed to export participants" });
+    }
+  }
+
+  // Registration methods
+  static async getEventRegistrations(req: any, res: Response) {
+    try {
+      const event = await storage.getEvent(req.params.eventId);
+      if (!event) {
+        return res.status(404).json({ message: "Event not found" });
+      }
+      
+      const userId = req.user.claims.sub;
+      if (event.organizerId !== userId) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      
+      const registrations = await storage.getEventRegistrations(req.params.eventId);
+      res.json(registrations);
+    } catch (error) {
+      console.error("Error fetching registrations:", error);
+      res.status(500).json({ message: "Failed to fetch registrations" });
+    }
+  }
+
+  static async getEventAnalytics(req: any, res: Response) {
+    try {
+      const event = await storage.getEvent(req.params.eventId);
+      if (!event) {
+        return res.status(404).json({ message: "Event not found" });
+      }
+      
+      const userId = req.user.claims.sub;
+      if (event.organizerId !== userId) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      
+      const analytics = await storage.getEventAnalytics(req.params.eventId);
+      res.json(analytics);
+    } catch (error) {
+      console.error("Error fetching analytics:", error);
+      res.status(500).json({ message: "Failed to fetch analytics" });
+    }
+  }
+
+  // Public routes for event registration
+  static async getPublicEvent(req: any, res: Response) {
+    try {
+      const event = await storage.getEventBySlug(req.params.slug);
+      if (!event) {
+        return res.status(404).json({ message: "Event not found" });
+      }
+      res.json(event);
+    } catch (error) {
+      console.error("Error fetching public event:", error);
+      res.status(500).json({ message: "Failed to fetch event" });
+    }
+  }
+
+  static async getPublicEventTickets(req: any, res: Response) {
+    try {
+      const event = await storage.getEventBySlug(req.params.slug);
+      if (!event) {
+        return res.status(404).json({ message: "Event not found" });
+      }
+      const tickets = await storage.getEventTickets(event.id);
+      res.json(tickets);
+    } catch (error) {
+      console.error("Error fetching public tickets:", error);
+      res.status(500).json({ message: "Failed to fetch tickets" });
+    }
+  }
+
+  static async publicRegisterForEvent(req: any, res: Response) {
+    try {
+      const event = await storage.getEventBySlug(req.params.slug);
+      if (!event) {
+        return res.status(404).json({ message: "Event not found" });
+      }
+      
+      // Call the existing registration method with the event ID
+      const mockReq = {
+        params: { eventId: event.id },
+        body: req.body
+      };
+      
+      return await EventController.registerForEvent(mockReq, res);
+    } catch (error) {
+      console.error("Error in public registration:", error);
+      res.status(500).json({ message: "Failed to register" });
     }
   }
 }

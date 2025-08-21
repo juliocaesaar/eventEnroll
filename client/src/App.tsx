@@ -10,6 +10,7 @@ import Dashboard from "@/pages/dashboard";
 import Events from "@/pages/events";
 import EventEditor from "@/pages/event-editor";
 import EventPublic from "@/pages/event-public";
+import PaymentMock from "@/pages/payment-mock";
 import Participants from "@/pages/participants";
 import Analytics from "@/pages/analytics";
 import Pricing from "@/pages/pricing";
@@ -30,8 +31,9 @@ function Router() {
 
   return (
     <Switch>
-      {/* Public event page - accessible without auth */}
+      {/* Public routes - accessible without auth */}
       <Route path="/event/:slug" component={EventPublic} />
+      <Route path="/payment/mock" component={PaymentMock} />
       
       {!isAuthenticated ? (
         <>
