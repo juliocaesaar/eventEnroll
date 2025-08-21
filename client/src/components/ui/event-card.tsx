@@ -80,6 +80,9 @@ export default function EventCard({ event }: EventCardProps) {
                 {event.capacity ? `0/${event.capacity} inscritos` : 'Capacidade ilimitada'}
               </span>
             </div>
+            <p className="text-xs text-blue-600 mt-1" data-testid={`text-public-link-${event.id}`}>
+              <span className="font-medium">Link público:</span> /event/{event.slug}
+            </p>
           </div>
         </div>
         <div className="text-right">

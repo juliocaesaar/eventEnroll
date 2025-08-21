@@ -84,6 +84,50 @@ export async function seedInitialData(): Promise<void> {
 
       console.log('Seeded initial templates');
     }
+
+    // Create a sample event if none exists
+    const existingEvents = await storage.getUserEvents("17698187"); // Default user ID
+    if (existingEvents.length === 0) {
+      const sampleEvent = await storage.createEvent({
+        title: "Acampamento Next Level 2024",
+        description: "Um acampamento transformador para jovens com foco em liderança e crescimento pessoal",
+        startDate: new Date("2024-09-15T09:00:00Z"),
+        endDate: new Date("2024-09-17T18:00:00Z"),
+        capacity: 100,
+        organizerId: "17698187",
+        categoryId: "religious",
+        status: "published",
+        slug: "acamp-next-level",
+        pageComponents: [
+          { type: 'header', props: { title: 'Acampamento Next Level 2024', subtitle: 'Transforme sua vida em 3 dias' } },
+          { type: 'image', props: { src: 'https://images.unsplash.com/photo-1504851149312-7a075b496cc7?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80', alt: 'Acampamento na natureza', width: '100%' } },
+          { type: 'text', props: { content: 'Junte-se a nós em uma experiência única de crescimento pessoal e espiritual. Durante 3 dias intensos, você participará de workshops, palestras inspiradoras e atividades ao ar livre que vão desafiar seus limites e expandir sua visão de mundo.', size: 'medium' } },
+          { type: 'text', props: { content: 'O que esperar: Palestras motivacionais, Workshops práticos, Atividades de aventura, Networking com jovens líderes, Momentos de reflexão e autoconhecimento', size: 'medium' } },
+          { type: 'button', props: { text: 'Garanta sua vaga agora!', variant: 'primary', link: '#register' } }
+        ]
+      });
+
+      // Create tickets for the sample event
+      await storage.createTicket({
+        eventId: sampleEvent.id,
+        name: "Ingresso Individual",
+        description: "Inclui hospedagem, todas as refeições e materiais",
+        price: "299.90",
+        quantity: 80,
+        maxPerOrder: 2
+      });
+
+      await storage.createTicket({
+        eventId: sampleEvent.id,
+        name: "Lote Promocional Dupla",
+        description: "Para quem vem acompanhado! Desconto especial para 2 pessoas",
+        price: "499.90",
+        quantity: 20,
+        maxPerOrder: 1
+      });
+
+      console.log('Created sample event with tickets');
+    }
   } catch (error) {
     console.error('Error seeding initial data:', error);
   }
