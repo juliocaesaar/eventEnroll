@@ -138,7 +138,7 @@ export class DatabaseStorage implements IStorage {
     } else {
       const [subscription] = await db
         .insert(userSubscriptions)
-        .values({ ...data, userId })
+        .values({ ...data, userId } as any)
         .returning();
       return subscription;
     }
@@ -221,8 +221,35 @@ export class DatabaseStorage implements IStorage {
       .orderBy(tickets.createdAt);
   }
 
+  async getTicket(id: string): Promise<Ticket | undefined> {
+    const [ticket] = await db.select().from(tickets).where(eq(tickets.id, id));
+    return ticket;
+  }
+
   async deleteTicket(id: string): Promise<void> {
     await db.delete(tickets).where(eq(tickets.id, id));
+  }
+  
+  // Registration operations
+  async getRegistration(id: string): Promise<Registration | undefined> {
+    const [registration] = await db.select().from(registrations).where(eq(registrations.id, id));
+    return registration;
+  }
+
+  async updateRegistration(id: string, data: Partial<Registration>): Promise<Registration> {
+    const [registration] = await db
+      .update(registrations)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(registrations.id, id))
+      .returning();
+    return registration;
+  }
+  
+  // Category operations
+  async getEventCategory(id: string | null): Promise<EventCategory | undefined> {
+    if (!id) return undefined;
+    const [category] = await db.select().from(eventCategories).where(eq(eventCategories.id, id));
+    return category;
   }
 
   // Registration operations

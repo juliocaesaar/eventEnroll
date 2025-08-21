@@ -9,6 +9,9 @@ import Landing from "@/pages/landing";
 import Dashboard from "@/pages/dashboard";
 import Events from "@/pages/events";
 import EventEditor from "@/pages/event-editor";
+import EventPublic from "@/pages/event-public";
+import Participants from "@/pages/participants";
+import Analytics from "@/pages/analytics";
 import Pricing from "@/pages/pricing";
 
 function Router() {
@@ -27,6 +30,9 @@ function Router() {
 
   return (
     <Switch>
+      {/* Public event page - accessible without auth */}
+      <Route path="/event/:slug" component={EventPublic} />
+      
       {!isAuthenticated ? (
         <>
           <Route path="/" component={Landing} />
@@ -37,6 +43,8 @@ function Router() {
           <Route path="/" component={Dashboard} />
           <Route path="/events" component={Events} />
           <Route path="/events/:id/edit" component={EventEditor} />
+          <Route path="/events/:eventId/participants" component={Participants} />
+          <Route path="/events/:eventId/analytics" component={Analytics} />
           <Route path="/editor" component={EventEditor} />
           <Route path="/pricing" component={Pricing} />
         </>

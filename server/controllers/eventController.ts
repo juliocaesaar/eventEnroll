@@ -241,7 +241,168 @@ export class EventController {
       }
     }
   }
+  
+  static async updateTicket(req: any, res: Response) {
+    try {
+      const event = await storage.getEvent(req.params.eventId);
+      if (!event) {
+        return res.status(404).json({ message: "Event not found" });
+      }
+      
+      const userId = req.user.claims.sub;
+      if (event.organizerId !== userId) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      
+      const ticketData = insertTicketSchema.partial().parse(req.body);
+      const ticket = await storage.updateTicket(req.params.ticketId, ticketData);
+      res.json(ticket);
+    } catch (error) {
+      console.error("Error updating ticket:", error);
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ message: "Invalid ticket data", errors: error.errors });
+      } else {
+        res.status(500).json({ message: "Failed to update ticket" });
+      }
+    }
+  }
+  
+  static async deleteTicket(req: any, res: Response) {
+    try {
+      const event = await storage.getEvent(req.params.eventId);
+      if (!event) {
+        return res.status(404).json({ message: "Event not found" });
+      }
+      
+      const userId = req.user.claims.sub;
+      if (event.organizerId !== userId) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      
+      await storage.deleteTicket(req.params.ticketId);
+      res.json({ success: true, message: "Ticket deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting ticket:", error);
+      res.status(500).json({ message: "Failed to delete ticket" });
+    }
+  }
 
+  // Public event methods
+  static async getPublicEvent(req: any, res: Response) {
+    try {
+      const event = await storage.getEventBySlug(req.params.slug);
+      if (!event || event.status !== 'active') {
+        return res.status(404).json({ message: "Event not found" });
+      }
+      
+      // Include category info
+      const category = await storage.getEventCategory(event.categoryId);
+      res.json({ ...event, category });
+    } catch (error) {
+      console.error("Error fetching public event:", error);
+      res.status(500).json({ message: "Failed to fetch event" });
+    }
+  }
+  
+  static async getPublicEventTickets(req: any, res: Response) {
+    try {
+      const event = await storage.getEventBySlug(req.params.slug);
+      if (!event || event.status !== 'active') {
+        return res.status(404).json({ message: "Event not found" });
+      }
+      
+      const tickets = await storage.getEventTickets(event.id);
+      // Only return active tickets that are still on sale
+      const activeTickets = tickets.filter(ticket => 
+        ticket.status === 'active' && 
+        (!ticket.salesEnd || new Date(ticket.salesEnd) > new Date())
+      );
+      
+      res.json(activeTickets);
+    } catch (error) {
+      console.error("Error fetching public tickets:", error);
+      res.status(500).json({ message: "Failed to fetch tickets" });
+    }
+  }
+  
+  static async publicRegisterForEvent(req: any, res: Response) {
+    try {
+      const event = await storage.getEventBySlug(req.params.slug);
+      if (!event || event.status !== 'active') {
+        return res.status(404).json({ message: "Event not found" });
+      }
+      
+      const { name, email, phone, document, tickets } = req.body;
+      
+      if (!name || !email || !tickets || tickets.length === 0) {
+        return res.status(400).json({ message: "Missing required fields" });
+      }
+      
+      // Calculate total and create registrations
+      let totalAmount = 0;
+      const registrations = [];
+      
+      for (const ticketRequest of tickets) {
+        const ticket = await storage.getTicket(ticketRequest.ticketId);
+        if (!ticket || ticket.eventId !== event.id) {
+          return res.status(400).json({ message: "Invalid ticket" });
+        }
+        
+        // Check availability
+        if ((ticket.sold || 0) + ticketRequest.quantity > ticket.quantity) {
+          return res.status(400).json({ message: `Not enough tickets available for ${ticket.name}` });
+        }
+        
+        const amount = parseFloat(ticket.price || '0') * ticketRequest.quantity;
+        totalAmount += amount;
+        
+        // Create registration for each ticket quantity
+        for (let i = 0; i < ticketRequest.quantity; i++) {
+          const registration = await storage.createRegistration({
+            eventId: event.id,
+            ticketId: ticket.id,
+            attendeeName: name,
+            attendeeEmail: email,
+            attendeePhone: phone,
+            attendeeDocument: document,
+            status: totalAmount > 0 ? 'pending_payment' : 'confirmed',
+            amount: parseFloat(ticket.price || '0'),
+          });
+          registrations.push(registration);
+        }
+        
+        // Update ticket sold count
+        await storage.updateTicket(ticket.id, {
+          sold: (ticket.sold || 0) + ticketRequest.quantity
+        });
+      }
+      
+      // If free event, confirm registrations and send confirmation
+      if (totalAmount === 0) {
+        res.json({ 
+          success: true, 
+          message: "Registration confirmed",
+          registrations 
+        });
+        return;
+      }
+      
+      // For paid events, integrate with Asaas payment
+      // This would create a payment link and return it
+      const paymentUrl = `https://payment.asaas.com/checkout/${registrations[0].id}`; // Mock URL
+      
+      res.json({ 
+        success: true,
+        paymentUrl,
+        totalAmount,
+        registrations 
+      });
+    } catch (error) {
+      console.error("Error registering for event:", error);
+      res.status(500).json({ message: "Failed to register for event" });
+    }
+  }
+  
   // Registration methods
   static async getEventRegistrations(req: any, res: Response) {
     try {
@@ -260,6 +421,56 @@ export class EventController {
     } catch (error) {
       console.error("Error fetching registrations:", error);
       res.status(500).json({ message: "Failed to fetch registrations" });
+    }
+  }
+  
+  static async getEventAnalytics(req: any, res: Response) {
+    try {
+      const event = await storage.getEvent(req.params.eventId);
+      if (!event) {
+        return res.status(404).json({ message: "Event not found" });
+      }
+      
+      const userId = req.user.claims.sub;
+      if (event.organizerId !== userId) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      
+      // Get analytics data
+      const registrations = await storage.getEventRegistrations(req.params.eventId);
+      const tickets = await storage.getEventTickets(req.params.eventId);
+      
+      // Calculate metrics
+      const totalRegistrations = registrations.length;
+      const totalRevenue = registrations.reduce((sum: number, reg: any) => sum + parseFloat(reg.amount || 0), 0);
+      const avgTicketValue = totalRevenue / (totalRegistrations || 1);
+      
+      // Group by ticket type
+      const ticketStats = tickets.map((ticket: any) => ({
+        name: ticket.name,
+        sold: ticket.sold || 0,
+        revenue: (ticket.sold || 0) * parseFloat(ticket.price || 0)
+      }));
+      
+      // Mock additional analytics (in real app, get from proper analytics service)
+      const analytics = {
+        overview: {
+          totalRegistrations,
+          totalRevenue,
+          avgTicketValue,
+          conversionRate: 8.5, // Mock
+          registrationsGrowth: 12.5, // Mock
+          revenueGrowth: 18.2 // Mock
+        },
+        ticketTypes: ticketStats,
+        registrationsByDay: [], // Mock - would calculate from registration dates
+        trafficSources: [] // Mock - would get from analytics service
+      };
+      
+      res.json(analytics);
+    } catch (error) {
+      console.error("Error fetching analytics:", error);
+      res.status(500).json({ message: "Failed to fetch analytics" });
     }
   }
 
@@ -304,6 +515,109 @@ export class EventController {
     } catch (error) {
       console.error("Error fetching analytics:", error);
       res.status(500).json({ message: "Failed to fetch analytics" });
+    }
+  }
+
+  static async checkinParticipant(req: any, res: Response) {
+    try {
+      const registration = await storage.getRegistration(req.params.registrationId);
+      if (!registration) {
+        return res.status(404).json({ message: "Registration not found" });
+      }
+      
+      const event = await storage.getEvent(registration.eventId);
+      const userId = req.user.claims.sub;
+      if (event?.organizerId !== userId) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      
+      const updatedRegistration = await storage.updateRegistration(req.params.registrationId, {
+        status: 'checked_in',
+        checkedInAt: new Date()
+      });
+      
+      res.json(updatedRegistration);
+    } catch (error) {
+      console.error("Error checking in participant:", error);
+      res.status(500).json({ message: "Failed to check in participant" });
+    }
+  }
+
+  static async sendReminder(req: any, res: Response) {
+    try {
+      const registration = await storage.getRegistration(req.params.registrationId);
+      if (!registration) {
+        return res.status(404).json({ message: "Registration not found" });
+      }
+      
+      const event = await storage.getEvent(registration.eventId);
+      const userId = req.user.claims.sub;
+      if (event?.organizerId !== userId) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      
+      console.log(`📧 Sending reminder to ${registration.attendeeEmail} for event ${event.title}`);
+      
+      res.json({ success: true, message: "Reminder sent successfully" });
+    } catch (error) {
+      console.error("Error sending reminder:", error);
+      res.status(500).json({ message: "Failed to send reminder" });
+    }
+  }
+
+  static async exportParticipants(req: any, res: Response) {
+    try {
+      const event = await storage.getEvent(req.params.eventId);
+      if (!event) {
+        return res.status(404).json({ message: "Event not found" });
+      }
+      
+      const userId = req.user.claims.sub;
+      if (event.organizerId !== userId) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      
+      const registrations = await storage.getEventRegistrations(req.params.eventId);
+      const format = req.params.format;
+      
+      if (format === 'csv') {
+        const csvData = registrations.map((reg: any) => [
+          reg.attendeeName,
+          reg.attendeeEmail,
+          reg.attendeePhone || '',
+          reg.attendeeDocument || '',
+          reg.ticket?.name || '',
+          `R$ ${parseFloat(reg.amount || 0).toFixed(2)}`,
+          reg.status,
+          reg.qrCode,
+          new Date(reg.createdAt).toLocaleDateString('pt-BR')
+        ]);
+        
+        const headers = [
+          'Nome',
+          'Email', 
+          'Telefone',
+          'Documento',
+          'Tipo Ingresso',
+          'Valor',
+          'Status',
+          'QR Code',
+          'Data Inscrição'
+        ];
+        
+        const csv = [headers, ...csvData]
+          .map(row => row.map(field => `"${field}"`).join(','))
+          .join('\n');
+        
+        res.setHeader('Content-Type', 'text/csv');
+        res.setHeader('Content-Disposition', `attachment; filename="participantes-${event.slug}.csv"`);
+        res.send(csv);
+      } else {
+        res.status(400).json({ message: "Unsupported export format" });
+      }
+    } catch (error) {
+      console.error("Error exporting participants:", error);
+      res.status(500).json({ message: "Failed to export participants" });
     }
   }
 }

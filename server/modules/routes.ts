@@ -40,10 +40,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Ticket routes
   app.get('/api/events/:eventId/tickets', isAuthenticated, EventController.getEventTickets);
   app.post('/api/events/:eventId/tickets', isAuthenticated, EventController.createTicket);
+  app.put('/api/events/:eventId/tickets/:ticketId', isAuthenticated, EventController.updateTicket);
+  app.delete('/api/events/:eventId/tickets/:ticketId', isAuthenticated, EventController.deleteTicket);
 
   // Registration routes
   app.get('/api/events/:eventId/registrations', isAuthenticated, EventController.getEventRegistrations);
   app.post('/api/events/:eventId/register', EventController.registerForEvent);
+  
+  // Analytics routes
+  app.get('/api/events/:eventId/analytics', isAuthenticated, EventController.getEventAnalytics);
+  
+  // Participant management routes
+  app.post('/api/registrations/:registrationId/checkin', isAuthenticated, EventController.checkinParticipant);
+  app.post('/api/registrations/:registrationId/remind', isAuthenticated, EventController.sendReminder);
+  app.get('/api/events/:eventId/export/:format', isAuthenticated, EventController.exportParticipants);
+  
+  // Public routes for events
+  app.get('/api/public/events/:slug', EventController.getPublicEvent);
+  app.get('/api/public/events/:slug/tickets', EventController.getPublicEventTickets);
+  app.post('/api/public/events/:slug/register', EventController.publicRegisterForEvent);
 
   // Analytics routes
   app.get('/api/events/:eventId/analytics', isAuthenticated, requirePaidPlan, EventController.getEventAnalytics);
