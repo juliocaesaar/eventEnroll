@@ -17,7 +17,7 @@ export default function Events() {
   const { data: events, isLoading } = useQuery({
     queryKey: ["/api/events"],
     enabled: !!user,
-  });
+  }) as { data: any[], isLoading: boolean };
 
   const filteredEvents = Array.isArray(events) ? events.filter((event: any) => 
     event.title.toLowerCase().includes(searchTerm.toLowerCase()) ||

@@ -39,8 +39,17 @@ export class EventController {
         });
       }
 
+      // Convert string dates to Date objects
+      const bodyData = { ...req.body };
+      if (bodyData.startDate && typeof bodyData.startDate === 'string') {
+        bodyData.startDate = new Date(bodyData.startDate);
+      }
+      if (bodyData.endDate && typeof bodyData.endDate === 'string') {
+        bodyData.endDate = new Date(bodyData.endDate);
+      }
+      
       const eventData = insertEventSchema.parse({
-        ...req.body,
+        ...bodyData,
         organizerId: userId,
         slug: generateSlug(req.body.title),
       });
@@ -90,7 +99,16 @@ export class EventController {
         return res.status(403).json({ message: "Access denied" });
       }
       
-      const updateData = insertEventSchema.partial().parse(req.body);
+      // Convert string dates to Date objects for updates
+      const bodyData = { ...req.body };
+      if (bodyData.startDate && typeof bodyData.startDate === 'string') {
+        bodyData.startDate = new Date(bodyData.startDate);
+      }
+      if (bodyData.endDate && typeof bodyData.endDate === 'string') {
+        bodyData.endDate = new Date(bodyData.endDate);
+      }
+      
+      const updateData = insertEventSchema.partial().parse(bodyData);
       const updatedEvent = await storage.updateEvent(req.params.id, updateData);
       res.json(updatedEvent);
     } catch (error) {

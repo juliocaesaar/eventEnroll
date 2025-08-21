@@ -41,23 +41,23 @@ export default function Dashboard() {
     queryKey: ["/api/dashboard/stats"],
     enabled: !!user,
     retry: false,
-  });
+  }) as { data: any, isLoading: boolean };
 
   const { data: events, isLoading: eventsLoading } = useQuery({
     queryKey: ["/api/events"],
     enabled: !!user,
     retry: false,
-  });
+  }) as { data: any[], isLoading: boolean };
 
   const { data: categories } = useQuery({
     queryKey: ["/api/categories"],
     retry: false,
-  });
+  }) as { data: any[] };
 
   const { data: templates } = useQuery({
     queryKey: ["/api/templates"],
     retry: false,
-  });
+  }) as { data: any[] };
 
   if (authLoading) {
     return (
