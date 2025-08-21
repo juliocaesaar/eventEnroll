@@ -80,9 +80,33 @@ export default function EventCard({ event }: EventCardProps) {
                 {event.capacity ? `0/${event.capacity} inscritos` : 'Capacidade ilimitada'}
               </span>
             </div>
-            <p className="text-xs text-blue-600 mt-1" data-testid={`text-public-link-${event.id}`}>
-              <span className="font-medium">Link público:</span> /event/{event.slug}
-            </p>
+            <div className="flex items-center justify-between mt-2">
+              <p className="text-xs text-blue-600" data-testid={`text-public-link-${event.id}`}>
+                <span className="font-medium">Link público:</span> /event/{event.slug}
+              </p>
+              <div className="flex space-x-1">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    window.open(`/event/${event.slug}`, '_blank');
+                  }}
+                  className="text-xs bg-blue-100 hover:bg-blue-200 text-blue-700 px-2 py-1 rounded font-medium transition-colors"
+                  data-testid={`button-open-public-${event.id}`}
+                >
+                  🔗 Abrir
+                </button>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    navigator.clipboard.writeText(`${window.location.origin}/event/${event.slug}`);
+                  }}
+                  className="text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 px-2 py-1 rounded font-medium transition-colors"
+                  data-testid={`button-copy-link-${event.id}`}
+                >
+                  📋 Copiar
+                </button>
+              </div>
+            </div>
           </div>
         </div>
         <div className="text-right">

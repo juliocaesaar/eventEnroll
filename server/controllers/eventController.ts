@@ -225,13 +225,19 @@ export class EventController {
         return res.status(403).json({ message: "Access denied" });
       }
       
-      const ticketData = insertTicketSchema.parse({
+      // Convert and validate data
+      const ticketData = {
         ...req.body,
         eventId: req.params.eventId,
-      });
+        price: req.body.price ? String(req.body.price) : "0",
+        salesStart: req.body.salesStart ? new Date(req.body.salesStart) : null,
+        salesEnd: req.body.salesEnd ? new Date(req.body.salesEnd) : null
+      };
       
-      const ticket = await storage.createTicket(ticketData);
-      res.json(ticket);
+      const validatedData = insertTicketSchema.parse(ticketData);
+      
+      const ticket = await storage.createTicket(validatedData);
+      res.status(201).json(ticket);
     } catch (error) {
       console.error("Error creating ticket:", error);
       if (error instanceof z.ZodError) {
@@ -367,7 +373,7 @@ export class EventController {
             phoneNumber: phone,
             customFields: { document: document },
             status: totalAmount > 0 ? 'pending_payment' : 'confirmed',
-            amount: parseFloat(ticket.price || '0'),
+            amountPaid: parseFloat(ticket.price || '0'),
           });
           registrations.push(registration);
         }
