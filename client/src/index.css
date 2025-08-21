@@ -1,0 +1,207 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: hsl(0 0% 100%);
+  --foreground: hsl(220 14% 4%);
+  --card: hsl(0 0% 100%);
+  --card-foreground: hsl(220 14% 4%);
+  --popover: hsl(0 0% 100%);
+  --popover-foreground: hsl(220 14% 4%);
+  --primary: hsl(217 100% 60%);
+  --primary-foreground: hsl(0 0% 100%);
+  --secondary: hsl(156 76% 36%);
+  --secondary-foreground: hsl(0 0% 100%);
+  --muted: hsl(220 14% 96%);
+  --muted-foreground: hsl(220 9% 46%);
+  --accent: hsl(38 92% 50%);
+  --accent-foreground: hsl(26 83% 14%);
+  --destructive: hsl(0 84% 60%);
+  --destructive-foreground: hsl(0 0% 100%);
+  --border: hsl(220 13% 91%);
+  --input: hsl(220 13% 91%);
+  --ring: hsl(217 100% 60%);
+  --chart-1: hsl(217 100% 60%);
+  --chart-2: hsl(156 76% 36%);
+  --chart-3: hsl(38 92% 50%);
+  --chart-4: hsl(273 75% 66%);
+  --chart-5: hsl(336 75% 61%);
+  --sidebar: hsl(0 0% 100%);
+  --sidebar-foreground: hsl(220 14% 4%);
+  --sidebar-primary: hsl(217 100% 60%);
+  --sidebar-primary-foreground: hsl(0 0% 100%);
+  --sidebar-accent: hsl(220 14% 96%);
+  --sidebar-accent-foreground: hsl(217 100% 60%);
+  --sidebar-border: hsl(220 13% 91%);
+  --sidebar-ring: hsl(217 100% 60%);
+  --font-sans: 'Inter', system-ui, sans-serif;
+  --font-serif: Georgia, serif;
+  --font-mono: Menlo, monospace;
+  --radius: 0.5rem;
+}
+
+.dark {
+  --background: hsl(220 27% 4%);
+  --foreground: hsl(210 40% 98%);
+  --card: hsl(220 27% 8%);
+  --card-foreground: hsl(210 40% 98%);
+  --popover: hsl(220 27% 8%);
+  --popover-foreground: hsl(210 40% 98%);
+  --primary: hsl(217 100% 60%);
+  --primary-foreground: hsl(0 0% 100%);
+  --secondary: hsl(156 76% 36%);
+  --secondary-foreground: hsl(0 0% 100%);
+  --muted: hsl(215 28% 17%);
+  --muted-foreground: hsl(218 11% 65%);
+  --accent: hsl(38 92% 50%);
+  --accent-foreground: hsl(26 83% 14%);
+  --destructive: hsl(0 84% 60%);
+  --destructive-foreground: hsl(0 0% 100%);
+  --border: hsl(215 28% 17%);
+  --input: hsl(215 28% 17%);
+  --ring: hsl(217 100% 60%);
+  --sidebar: hsl(220 27% 8%);
+  --sidebar-foreground: hsl(210 40% 98%);
+  --sidebar-primary: hsl(217 100% 60%);
+  --sidebar-primary-foreground: hsl(0 0% 100%);
+  --sidebar-accent: hsl(215 28% 17%);
+  --sidebar-accent-foreground: hsl(217 100% 60%);
+  --sidebar-border: hsl(215 28% 17%);
+  --sidebar-ring: hsl(217 100% 60%);
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply font-sans antialiased bg-background text-foreground;
+  }
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: hsl(var(--muted));
+}
+
+::-webkit-scrollbar-thumb {
+  background: hsl(var(--muted-foreground) / 0.3);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--muted-foreground) / 0.5);
+}
+
+/* Animation utilities */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.3s ease-out;
+}
+
+/* Brazilian color scheme additions */
+.bg-brasil-green {
+  background-color: #00A859;
+}
+
+.bg-brasil-yellow {
+  background-color: #FEDF00;
+}
+
+.bg-brasil-blue {
+  background-color: #002776;
+}
+
+.text-brasil-green {
+  color: #00A859;
+}
+
+.text-brasil-yellow {
+  color: #FEDF00;
+}
+
+.text-brasil-blue {
+  color: #002776;
+}
+
+/* Drag and drop styles */
+.drag-item {
+  @apply cursor-move transition-all duration-200;
+}
+
+.drag-item:hover {
+  @apply scale-105 shadow-lg;
+}
+
+.drop-zone {
+  @apply border-2 border-dashed border-primary border-opacity-30 rounded-lg transition-colors;
+}
+
+.drop-zone.drag-over {
+  @apply border-primary border-solid bg-primary bg-opacity-5;
+}
+
+/* Mobile-first responsive utilities */
+.container-mobile {
+  @apply px-4 sm:px-6 lg:px-8;
+}
+
+/* Brazilian payment method colors */
+.pix-green {
+  background-color: #32BCAD;
+}
+
+.boleto-orange {
+  background-color: #FF6900;
+}
+
+.credit-blue {
+  background-color: #1E40AF;
+}
+
+/* Event status indicators */
+.status-active {
+  @apply bg-green-100 text-green-800;
+}
+
+.status-draft {
+  @apply bg-blue-100 text-blue-800;
+}
+
+.status-paused {
+  @apply bg-yellow-100 text-yellow-800;
+}
+
+.status-cancelled {
+  @apply bg-red-100 text-red-800;
+}
+
+.status-completed {
+  @apply bg-gray-100 text-gray-800;
+}
+
+/* Loading states */
+.skeleton {
+  @apply animate-pulse bg-muted rounded;
+}
+
+/* Focus states for accessibility */
+.focus-visible {
+  @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2;
+}
