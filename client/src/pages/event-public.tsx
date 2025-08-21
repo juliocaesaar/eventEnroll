@@ -39,15 +39,24 @@ export default function EventPublic() {
       return apiRequest('POST', `/api/public/events/${params.slug}/register`, data);
     },
     onSuccess: (response: any) => {
-      toast({
-        title: "Inscrição realizada!",
-        description: response.paymentUrl 
-          ? "Você será redirecionado para o pagamento" 
-          : "Sua inscrição foi confirmada com sucesso!",
-      });
-      
-      if (response.paymentUrl) {
-        window.location.href = response.paymentUrl;
+      if (response.success) {
+        toast({
+          title: "Inscrição realizada com sucesso!",
+          description: `Total: R$ ${response.totalAmount.toFixed(2)}. ${response.paymentUrl ? 'Redirecionando para pagamento...' : 'Inscrição confirmada!'}`
+        });
+        
+        // Redirect to payment after a short delay
+        if (response.paymentUrl) {
+          setTimeout(() => {
+            window.location.href = response.paymentUrl;
+          }, 2000);
+        }
+      } else {
+        toast({
+          title: "Erro na inscrição",
+          description: "Tente novamente em alguns instantes.",
+          variant: "destructive"
+        });
       }
     },
     onError: (error: any) => {

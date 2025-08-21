@@ -9,6 +9,7 @@ import Landing from "@/pages/landing";
 import Dashboard from "@/pages/dashboard";
 import Events from "@/pages/events";
 import EventEditor from "@/pages/event-editor";
+import EventDetails from "@/pages/event-details";
 import EventPublic from "@/pages/event-public";
 import PaymentMock from "@/pages/payment-mock";
 import Participants from "@/pages/participants";
@@ -44,6 +45,7 @@ function Router() {
         <>
           <Route path="/" component={Dashboard} />
           <Route path="/events" component={Events} />
+          <Route path="/events/:eventId" component={EventDetails} />
           <Route path="/events/:id/edit" component={EventEditor} />
           <Route path="/events/:eventId/participants" component={Participants} />
           <Route path="/events/:eventId/analytics" component={Analytics} />

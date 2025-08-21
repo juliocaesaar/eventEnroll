@@ -2,12 +2,23 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Calendar } from "lucide-react";
 import { type Event } from "@shared/schema";
+import { useLocation } from "wouter";
 
 interface EventCardProps {
   event: Event;
 }
 
 export default function EventCard({ event }: EventCardProps) {
+  const [, setLocation] = useLocation();
+  
+  const handleCardClick = (e: React.MouseEvent) => {
+    // Don't navigate if clicking on buttons
+    if ((e.target as HTMLElement).tagName === 'BUTTON' || (e.target as HTMLElement).closest('button')) {
+      return;
+    }
+    setLocation(`/events/${event.id}`);
+  };
+  
   const getStatusVariant = (status: string) => {
     switch (status) {
       case 'active':
@@ -39,7 +50,7 @@ export default function EventCard({ event }: EventCardProps) {
   };
 
   return (
-    <div className="p-6 hover:bg-gray-50 cursor-pointer" data-testid={`card-event-${event.id}`}>
+    <div className="p-6 hover:bg-gray-50 cursor-pointer" data-testid={`card-event-${event.id}`} onClick={handleCardClick}>
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-4">
           <div className="w-12 h-12 bg-primary-100 rounded-lg flex items-center justify-center">
