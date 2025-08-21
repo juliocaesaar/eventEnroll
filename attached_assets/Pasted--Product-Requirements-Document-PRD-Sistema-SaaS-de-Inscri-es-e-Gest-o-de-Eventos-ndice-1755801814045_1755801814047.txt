@@ -1,0 +1,1250 @@
+# Product Requirements Document (PRD)
+# Sistema SaaS de Inscrições e Gestão de Eventos
+
+## Índice
+
+1. [Visão Geral do Produto](#1-visão-geral-do-produto)
+2. [Objetivos de Negócio](#2-objetivos-de-negócio)
+3. [Funcionalidades Principais](#3-funcionalidades-principais)
+4. [Requisitos Técnicos](#4-requisitos-técnicos)
+5. [Experiência do Usuário (UX/UI)](#5-experiência-do-usuário-uxui)
+6. [Sistema de Templates e Personalização](#6-sistema-de-templates-e-personalização)
+7. [Modelo de Monetização](#7-modelo-de-monetização)
+8. [Integrações Essenciais](#8-integrações-essenciais)
+9. [Roadmap de Desenvolvimento](#9-roadmap-de-desenvolvimento)
+10. [Análise Competitiva](#10-análise-competitiva)
+11. [Requisitos de Compliance e Segurança](#11-requisitos-de-compliance-e-segurança)
+12. [Métricas e Analytics](#12-métricas-e-analytics)
+13. [Plano de Go-to-Market](#13-plano-de-go-to-market)
+14. [Riscos e Mitigações](#14-riscos-e-mitigações)
+
+---
+
+## 1. Visão Geral do Produto
+
+### 1.1 Resumo Executivo
+
+O **EventFlow** é uma plataforma SaaS abrangente que revoluciona a criação, gestão e monetização de eventos de todos os tipos. Nossa solução oferece um ecossistema completo que conecta organizadores e participantes através de uma experiência digital intuitiva, personalizada e altamente escalável.
+
+A plataforma atende desde pequenos eventos comunitários até grandes conferências corporativas, proporcionando ferramentas profissionais de gestão, sistemas de pagamento integrados, analytics avançados e um editor drag-and-drop revolucionário para criação de páginas de evento personalizadas.
+
+Nossa proposta de valor central é democratizar o acesso a ferramentas profissionais de gestão de eventos, permitindo que qualquer pessoa ou organização possa criar eventos com aparência e funcionalidade profissionais, independentemente do seu conhecimento técnico ou orçamento.
+
+### 1.2 Problema que Resolve
+
+**Dor Principal**: Organizadores de eventos enfrentam complexidade técnica, custos elevados e fragmentação de ferramentas ao tentar criar, promover e gerenciar eventos de forma profissional.
+
+**Problemas Específicos Identificados**:
+
+- **Fragmentação de Ferramentas**: Organizadores precisam usar múltiplas plataformas (criação de landing page, sistema de inscrições, pagamentos, comunicação, analytics)
+- **Barreiras Técnicas**: Falta de conhecimento técnico para criar páginas atraentes e sistemas funcionais
+- **Custos Proibitivos**: Soluções profissionais existentes têm custos fixos altos que inviabilizam eventos menores
+- **Falta de Personalização**: Templates genéricos que não refletem a identidade visual do evento ou organização
+- **Gestão Complexa**: Dificuldade para acompanhar inscrições, pagamentos, comunicação e métricas em tempo real
+- **Experiência do Participante Fragmentada**: Processos de inscrição complexos, comunicação inconsistente e falta de engajamento
+
+### 1.3 Proposta de Valor
+
+**Para Organizadores**:
+- Plataforma única que integra todas as funcionalidades necessárias para gestão completa de eventos
+- Editor visual drag-and-drop que permite criação de páginas profissionais sem conhecimento técnico
+- Sistema de pagamentos integrado com múltiplas opções (PIX, cartão, boleto, parcelamento)
+- Analytics em tempo real para tomada de decisões baseada em dados
+- Automação de comunicação e marketing para engajamento dos participantes
+- Modelo de pricing acessível com comissão por transação, sem custos fixos iniciais
+
+**Para Participantes**:
+- Experiência de descoberta e inscrição simplificada e intuitiva
+- Múltiplas opções de pagamento com segurança garantida
+- Comunicação personalizada e relevante sobre o evento
+- Acesso mobile-first com tickets digitais e QR codes
+- Networking e interação social com outros participantes
+
+### 1.4 Target Audience (Personas Detalhadas)
+
+**Persona 1: Pastor/Líder Religioso (João, 35 anos)**
+- **Contexto**: Lidera uma igreja de médio porte (200-500 membros), organiza retiros, acampamentos e conferências
+- **Dores**: Falta de tempo e conhecimento técnico, orçamento limitado, necessidade de comunicação eficaz com os membros
+- **Motivações**: Fortalecer comunidade, facilitar participação dos membros, crescimento da igreja
+- **Comportamento Digital**: Usa WhatsApp, Facebook, tem conhecimento básico de tecnologia
+- **Frequência de Eventos**: 4-6 eventos por ano, 50-200 participantes por evento
+
+**Persona 2: Empreendedor de Eventos (Maria, 29 anos)**
+- **Contexto**: Organiza workshops, palestras e networking para profissionais, trabalha como freelancer
+- **Dores**: Necessidade de aparência profissional, gestão de múltiplos eventos simultâneos, maximização de receita
+- **Motivações**: Crescimento do negócio, networking, estabelecer autoridade no mercado
+- **Comportamento Digital**: Power user, ativa em redes sociais, valoriza analytics e automação
+- **Frequência de Eventos**: 10-15 eventos por ano, 30-150 participantes por evento
+
+**Persona 3: Corporativo/RH (Carlos, 42 anos)**
+- **Contexto**: Gestor de RH em empresa média, organiza treinamentos, congressos e eventos internos
+- **Dores**: Compliance, relatórios detalhados, integração com sistemas existentes, orçamento controlado
+- **Motivações**: Eficiência operacional, satisfação dos funcionários, desenvolvimento organizacional
+- **Comportamento Digital**: Focado em produtividade, valoriza integrações e relatórios
+- **Frequência de Eventos**: 20-30 eventos por ano, 50-500 participantes por evento
+
+**Persona 4: Organizador de Festas/Social (Ana, 26 anos)**
+- **Contexto**: Organiza casamentos, aniversários, formaturas e eventos familiares
+- **Dores**: Personalização visual, gestão de listas de convidados, coordenação de fornecedores
+- **Motivações**: Criar experiências memoráveis, facilitar organização, reduzir stress
+- **Comportamento Digital**: Mobile-first, valoriza visual e experiência, compartilha nas redes sociais
+- **Frequência de Eventos**: 15-25 eventos por ano, 30-300 participantes por evento
+
+### 1.5 Posicionamento no Mercado
+
+**Posicionamento Central**: "A plataforma mais intuitiva e completa para criação e gestão de eventos, que democratiza o acesso a ferramentas profissionais através de tecnologia inovadora e pricing acessível."
+
+**Diferenciadores Chave**:
+1. **Editor Drag-and-Drop Revolucionário**: Único no mercado brasileiro com essa facilidade de uso
+2. **Pricing Justo**: Comissão por transação sem custos fixos, viabilizando eventos de qualquer porte
+3. **Foco na Experiência Mobile**: 70%+ dos participantes usam mobile, nossa UX é mobile-first
+4. **Vertical Integration**: Desde criação até analytics, tudo em uma única plataforma
+5. **Localização Brasileira**: Integrações nativas com PIX, boleto, regulamentações locais
+
+**Posicionamento Competitivo**:
+- **vs. Eventbrite**: Mais personalizável, melhor experiência mobile, pricing mais justo
+- **vs. Sympla**: Editor mais avançado, analytics superiores, maior foco em UX
+- **vs. Soluções Custom**: Muito mais acessível, sem necessidade de desenvolvimento
+- **vs. Redes Sociais**: Ferramentas profissionais, gestão centralizada, monetização adequada
+
+---
+
+## 2. Objetivos de Negócio
+
+### 2.1 Metas de Receita e Crescimento
+
+**Ano 1 (2024)**:
+- ARR Target: R$ 1,2M
+- Número de Organizadores Ativos: 500
+- Eventos Criados: 2.000
+- Participantes Processados: 50.000
+- Receita Média por Organizador: R$ 2.400/ano
+
+**Ano 2 (2025)**:
+- ARR Target: R$ 4,8M (4x growth)
+- Número de Organizadores Ativos: 1.500
+- Eventos Criados: 7.500
+- Participantes Processados: 200.000
+- Receita Média por Organizador: R$ 3.200/ano
+
+**Ano 3 (2026)**:
+- ARR Target: R$ 12M (2.5x growth)
+- Número de Organizadores Ativos: 3.000
+- Eventos Criados: 18.000
+- Participantes Processados: 500.000
+- Receita Média por Organizador: R$ 4.000/ano
+
+### 2.2 KPIs Principais
+
+**Acquisition Metrics**:
+- Customer Acquisition Cost (CAC): < R$ 200
+- Monthly Recurring Revenue (MRR) Growth Rate: 15%+
+- Lead to Customer Conversion Rate: 8%+
+- Time to First Event Created: < 24h
+
+**Engagement Metrics**:
+- Monthly Active Users (MAU): 70%+ dos organizadores cadastrados
+- Events Created per Month per User: 1.5+
+- Feature Adoption Rate (Editor Drag-and-Drop): 85%+
+- Support Ticket Volume: < 5% dos usuários por mês
+
+**Retention Metrics**:
+- Customer Retention Rate (12 meses): 85%+
+- Net Promoter Score (NPS): 50+
+- Churn Rate: < 5% mensal
+- Expansion Revenue: 25% do crescimento total
+
+**Business Health Metrics**:
+- Gross Margin: 85%+
+- Lifetime Value (LTV): R$ 3.000+
+- LTV/CAC Ratio: 15:1+
+- Time to Payback: 6 meses
+
+### 2.3 Modelo de Monetização Detalhado
+
+**Estrutura Principal: Comissão por Transação**
+- **Taxa Base**: 4,99% + R$ 0,99 por transação paga processada
+- **Eventos Gratuitos**: Gratuito até 100 participantes, depois R$ 1,99 por participante adicional
+- **Volume Discount**: Redução progressiva da taxa para organizadores de alto volume
+
+**Planos de Assinatura (Complementar)**:
+
+**Plano Starter (Freemium)**:
+- Custo: R$ 0/mês
+- Limite: 3 eventos simultâneos, 100 participantes por evento
+- Funcionalidades: Templates básicos, sistema de pagamento, relatórios básicos
+- Comissão: Taxa padrão (4,99% + R$ 0,99)
+
+**Plano Professional (R$ 99/mês)**:
+- Eventos ilimitados, 500 participantes por evento
+- Editor avançado, templates premium, branding personalizado
+- Analytics avançados, automação de email, suporte prioritário
+- Comissão Reduzida: 3,99% + R$ 0,99
+
+**Plano Enterprise (R$ 299/mês)**:
+- Participantes ilimitados, white-label, integrações customizadas
+- API access, multi-usuários, dashboard executivo
+- Success manager dedicado, SLA garantido
+- Comissão VIP: 2,99% + R$ 0,99
+
+**Receitas Complementares**:
+- **Services**: Setup de eventos premium (R$ 500-2000)
+- **Partnerships**: Comissões de parceiros (fornecedores, locais)
+- **Data Insights**: Relatórios de mercado agregados (B2B)
+- **Training**: Cursos e certificações para organizadores
+
+### 2.4 Projeções Financeiras Iniciais
+
+**Ano 1 - Estrutura de Custos**:
+- **Desenvolvimento**: R$ 400k (33%)
+- **Marketing e Vendas**: R$ 300k (25%)
+- **Operações e Infraestrutura**: R$ 120k (10%)
+- **Pessoal (além de dev)**: R$ 240k (20%)
+- **Outros**: R$ 140k (12%)
+- **Total**: R$ 1.2M
+
+**Ano 1 - Projeção de Receita**:
+- **Transacional**: R$ 800k (67%)
+- **Assinaturas**: R$ 240k (20%)
+- **Services**: R$ 120k (10%)
+- **Outros**: R$ 40k (3%)
+- **Total**: R$ 1.2M (Break-even)
+
+**Margem por Segmento**:
+- Receita Transacional: 85% margin
+- Receita de Assinatura: 90% margin  
+- Services: 60% margin
+- Blended Gross Margin: 82%
+
+---
+
+## 3. Funcionalidades Principais
+
+### 3.1 Para Organizadores de Eventos
+
+#### 3.1.1 Criação de Eventos
+
+**Editor Drag-and-Drop Avançado**:
+
+O core da plataforma é um editor visual intuitivo que permite criação de páginas de evento profissionais sem conhecimento técnico. O sistema funciona com uma arquitetura de componentes reutilizáveis que podem ser arrastados, personalizados e organizados conforme a necessidade do organizador.
+
+**Componentes Disponíveis**:
+- **Header Sections**: Hero banners com vídeo/imagem de fundo, countdown timers, calls-to-action
+- **Content Blocks**: Textos formatados, listas, citações, FAQs, cronogramas
+- **Media Elements**: Galerias de imagens, players de vídeo, carrosséis, mapas interativos
+- **Interactive Components**: Formulários customizados, enquetes, botões de ação social
+- **Layout Elements**: Colunas, divisores, espaçadores, containers com bordas customizadas
+
+**Sistema de Templates por Categoria**:
+- **Eventos Religiosos**: 15+ templates otimizados para retiros, conferências, acampamentos
+- **Corporativo**: 12+ templates para treinamentos, workshops, networking
+- **Social**: 20+ templates para casamentos, aniversários, formaturas
+- **Cultural**: 10+ templates para shows, festivais, exposições
+- **Esportivo**: 8+ templates para corridas, competições, torneios
+
+**Personalização Avançada**:
+- **Brand Kit**: Upload de logo, paleta de cores, tipografia customizada
+- **Responsive Design**: Preview e ajustes específicos para desktop, tablet e mobile
+- **SEO Optimization**: Meta tags automáticas, URLs customizadas, sitemap integration
+- **A/B Testing**: Teste de diferentes versões da página para otimização de conversão
+
+**User Stories**:
+- Como organizador religioso, quero escolher um template de retiro e personalizar com as cores da minha igreja para que a página reflita nossa identidade visual
+- Como empreendedora, quero criar uma landing page profissional com countdown e depoimentos para que meu workshop tenha credibilidade e urgência
+- Como organizadora de casamento, quero uma página romântica com galeria de fotos e RSVP integrado para que os convidados tenham uma experiência especial
+
+#### 3.1.2 Gestão de Inscrições
+
+**Sistema de Ticketing Flexível**:
+
+Oferecemos um sistema robusto de categorias de ingressos que atende desde eventos simples até estruturas complexas de pricing e benefícios.
+
+**Tipos de Ingressos**:
+- **Individual**: Ingresso único com preço fixo
+- **Lote**: Pricing dinâmico com early bird, regular e last minute
+- **Combo**: Pacotes múltiplos com desconto (ex: casal, família, grupo)
+- **VIP/Premium**: Categorias especiais com benefícios adicionais
+- **Gratuito**: Para eventos sem cobrança mas com controle de capacidade
+- **Por Convite**: Sistema fechado com códigos de acesso
+
+**Controle de Participantes**:
+- **Lista Master**: Visualização completa de todos os inscritos com filtros avançados
+- **Status Tracking**: Inscritos, confirmados, check-in realizado, no-shows
+- **Lista de Espera**: Gestão automática quando evento lotado, notificações de liberação
+- **Grupos e Segmentação**: Organização por categorias customizadas
+- **Export/Import**: Excel, CSV com dados completos para integrações
+
+**Sistema de Confirmações**:
+- **Email Automático**: Templates personalizáveis enviados instantaneamente após inscrição
+- **SMS Notifications**: Lembretes e confirmações via SMS para eventos críticos
+- **WhatsApp Integration**: Confirmações e updates via API do WhatsApp Business
+- **Calendar Integration**: Link automático para Google Calendar, Outlook, iCal
+- **Reminder Sequences**: Sequência automatizada de lembretes pré-evento
+
+**User Stories**:
+- Como pastor, quero configurar lotes de inscrição para o retiro com early bird até 15 dias antes para incentivar inscrições antecipadas e melhorar fluxo de caixa
+- Como organizadora, quero gerenciar lista de espera automaticamente para que quando alguém cancele, o próximo da fila seja notificado imediatamente
+- Como RH, quero exportar dados dos inscritos com campos customizados para integrar com nosso sistema interno de treinamentos
+
+#### 3.1.3 Sistema de Pagamentos
+
+**Gateway Multi-Provider**:
+
+Integração nativa com os principais gateways de pagamento brasileiros, oferecendo redundância e otimização de aprovação.
+
+**Formas de Pagamento Suportadas**:
+- **PIX**: Integração direta com chaves PIX, QR code dinâmico, confirmação em tempo real
+- **Cartão de Crédito**: Visa, Mastercard, Elo, com parcelamento até 12x
+- **Cartão de Débito**: Processamento online com autenticação 3D Secure
+- **Boleto Bancário**: Geração automática com vencimentos customizáveis
+- **Carteiras Digitais**: PicPay, Mercado Pago, PayPal para usuários avançados
+- **Transferência Bancária**: Para eventos corporativos com valores altos
+
+**Gestão Financeira Integrada**:
+- **Dashboard de Receitas**: Visualização em tempo real de vendas e projeções
+- **Conciliação Automática**: Match automático entre vendas e recebimentos
+- **Controle de Comissões**: Cálculo transparente das taxas da plataforma
+- **Reembolsos**: Sistema simplificado para cancelamentos e estornos
+- **Relatórios Fiscais**: Exportação formatada para contabilidade, integração com contadores
+
+**Checkout Optimization**:
+- **One-Click Purchase**: Salvamento de dados para compras futuras
+- **Guest Checkout**: Compra sem necessidade de cadastro completo
+- **Mobile Optimization**: Interface otimizada para conversão em dispositivos móveis
+- **Abandonment Recovery**: Emails automáticos para carrinho abandonado
+- **Social Proof**: Contador de ingressos vendidos, reviews do evento anterior
+
+**User Stories**:
+- Como participante, quero pagar com PIX e receber confirmação instantânea para ter certeza de que minha inscrição foi processada
+- Como organizador, quero acompanhar em tempo real as vendas do dia para tomar decisões sobre capacidade e marketing
+- Como empresa, quero pagar via transferência bancária e receber nota fiscal automaticamente para compliance fiscal
+
+#### 3.1.4 Comunicação e Marketing
+
+**Email Marketing Integrado**:
+
+Sistema completo de email marketing nativo da plataforma, eliminando necessidade de integrações externas para comunicação básica.
+
+**Funcionalidades de Email**:
+- **Templates Responsivos**: Biblioteca com 50+ templates otimizados para eventos
+- **Segmentação Avançada**: Por tipo de ingresso, data de inscrição, comportamento
+- **Automação Sequencial**: Jornadas automatizadas pré, durante e pós evento
+- **A/B Testing**: Teste de subject lines, horários, conteúdo para otimização
+- **Analytics Detalhados**: Open rate, click rate, conversion tracking completo
+
+**Comunicação Multi-Canal**:
+- **Push Notifications**: Via app mobile para atualizações críticas
+- **SMS Marketing**: Para eventos de alta importância ou last-minute updates
+- **WhatsApp Business**: Integração via API para comunicação personalizada
+- **Social Media**: Auto-posting em Facebook, Instagram com templates
+
+**Sequences Automatizadas**:
+- **Welcome Series**: Sequência de boas-vindas pós-inscrição
+- **Pre-Event**: Lembretes, instruções, conteúdo preparatório
+- **During Event**: Updates em tempo real, networking facilitation
+- **Post-Event**: Agradecimentos, pesquisa de satisfação, próximos eventos
+- **Re-engagement**: Para participantes de eventos anteriores
+
+**User Stories**:
+- Como organizadora de workshop, quero enviar uma sequência de 3 emails preparatórios com conteúdo relevante para aumentar o engajamento e reduzir no-shows
+- Como líder religioso, quero segmentar minha lista para enviar comunicações específicas para famílias vs jovens sobre o acampamento
+- Como corporativo, quero automação completa da comunicação do treinamento para reduzir trabalho manual da equipe de RH
+
+#### 3.1.5 Analytics e Relatórios
+
+**Dashboard Executivo**:
+
+Interface centralizada que oferece visão completa da performance dos eventos com métricas acionáveis.
+
+**Métricas de Vendas**:
+- **Revenue Tracking**: Receita total, média por participante, projeções
+- **Conversion Funnel**: Visitantes → Inscritos → Confirmados → Check-ins
+- **Payment Analytics**: Performance por forma de pagamento, approval rates
+- **Pricing Optimization**: Análise de elasticidade por faixa de preço
+- **Forecasting**: Projeções baseadas em histórico e tendências atuais
+
+**Métricas de Engajamento**:
+- **Email Performance**: Open rates, click rates, unsubscribe analysis
+- **Social Sharing**: Tracking de compartilhamentos e reach orgânico
+- **Page Analytics**: Heatmaps, scroll depth, time on page
+- **User Journey**: Flow analysis desde descoberta até check-in
+- **NPS Tracking**: Net Promoter Score por evento e tendência temporal
+
+**Relatórios Customizáveis**:
+- **Executive Summary**: Overview de alto nível para stakeholders
+- **Operational Reports**: Detalhes operacionais para equipe de produção
+- **Financial Reconciliation**: Relatórios detalhados para contabilidade
+- **Marketing Attribution**: ROI por canal de aquisição
+- **Competitive Analysis**: Benchmarking contra eventos similares
+
+**User Stories**:
+- Como empreendedora, quero ver quais canais de marketing trouxeram mais inscrições com melhor LTV para otimizar investimento futuro
+- Como pastor, quero entender qual horário de envio de email tem melhor abertura para otimizar comunicação com os membros
+- Como RH, quero relatórios detalhados de participação e engajamento para justificar investimento em treinamentos para diretoria
+
+### 3.2 Para Participantes
+
+#### 3.2.1 Descoberta de Eventos
+
+**Sistema de Busca Inteligente**:
+
+Algoritmo avançado de descoberta que combina localização, interesses, histórico e comportamento para recomendar eventos relevantes.
+
+**Filtros Avançados**:
+- **Localização**: Raio customizável, eventos presenciais vs virtuais vs híbridos
+- **Categoria**: Religiosos, corporativos, sociais, culturais, esportivos, educacionais
+- **Data/Horário**: Rangos flexíveis, fins de semana, dias úteis
+- **Preço**: Gratuitos, faixas de preço, eventos premium
+- **Formato**: Workshops, palestras, networking, entretenimento
+- **Capacidade**: Eventos íntimos vs grandes conferências
+
+**Recomendações Personalizadas**:
+- **Based on History**: Eventos similares aos já participados
+- **Social Recommendations**: Eventos que amigos/conexões participaram ou recomendam
+- **Trending Events**: Eventos em alta na região/categoria
+- **Early Bird Alerts**: Notificações de eventos em pré-venda
+- **Wishlist Matching**: Alertas quando eventos desejados abrem inscrições
+
+**Interface de Discovery**:
+- **Map View**: Visualização geográfica com pins interativos
+- **Calendar View**: Timeline de eventos por data
+- **Card Grid**: Cards visuais com preview das principais informações
+- **List View**: Formato compacto para browsing rápido
+- **Story Format**: Preview estilo stories para eventos em destaque
+
+**User Stories**:
+- Como jovem cristão, quero descobrir retiros e conferências na minha região através de um mapa interativo para planejar minha agenda espiritual
+- Como profissional de marketing, quero receber alertas de workshops e networking relevantes ao meu perfil para desenvolvimento contínuo
+- Como mãe, quero filtrar eventos familiares nos fins de semana na minha cidade para atividades com as crianças
+
+#### 3.2.2 Processo de Inscrição
+
+**Checkout Otimizado para Conversão**:
+
+Processo de inscrição streamlined focado em reduzir friction e maximizar conversões, especialmente em dispositivos móveis.
+
+**Fluxo de Inscrição Simplificado**:
+- **Step 1**: Seleção de ingressos com informações claras de benefícios
+- **Step 2**: Dados pessoais mínimos necessários (progressive profiling)
+- **Step 3**: Seleção de pagamento com preview de taxas
+- **Step 4**: Confirmação com upsells relevantes (parking, alimentação)
+- **Step 5**: Confirmação instantânea com CTA para compartilhamento
+
+**Guest Checkout vs Account Creation**:
+- **Guest Flow**: Inscrição sem cadastro para reduzir friction
+- **Account Benefits**: Histórico, favoritos, checkout mais rápido em futuras compras
+- **Social Login**: Facebook, Google, Apple para acelerar processo
+- **Progressive Profile**: Coleta gradual de dados adicionais pós-inscrição
+- **Email Verification**: Processo otimizado que não bloqueia compra
+
+**Mobile-First Experience**:
+- **Touch-Optimized**: Botões e campos dimensionados para mobile
+- **Auto-Fill**: Integração com Google Pay, Apple Pay para dados salvos
+- **Biometric Auth**: Touch ID, Face ID para checkout seguro
+- **Offline Capability**: Possibilidade de completar inscrição com conexão instável
+- **Share Integration**: Compartilhamento nativo via iOS/Android
+
+**User Stories**:
+- Como usuária mobile, quero completar minha inscrição em menos de 2 minutos usando Apple Pay para maximizar conveniência
+- Como participante recorrente, quero que meus dados sejam salvos para checkout em um clique em eventos futuros
+- Como pessoa ocupada, quero receber lembretes por push notification sobre eventos que demonstrei interesse mas não finalizei inscrição
+
+#### 3.2.3 Gestão de Ingressos
+
+**Digital Wallet Integration**:
+
+Sistema completo de ingressos digitais que elimina necessidade de impressão e oferece experiência premium aos participantes.
+
+**Ticket Digital Features**:
+- **QR Code Dinâmico**: Código único e seguro que impede falsificação
+- **Apple Wallet / Google Pay**: Integração nativa com carteiras digitais
+- **Offline Access**: Funciona mesmo sem internet no momento do check-in
+- **Transfer Functionality**: Transferência segura de ingressos entre usuários
+- **Upgrade Options**: Possibilidade de upgrade até data limite
+
+**Check-in Experience**:
+- **Fast Lane**: Check-in em menos de 3 segundos com QR scanner
+- **Facial Recognition**: Para eventos premium com tecnologia biométrica
+- **Batch Check-in**: Para grupos familiares ou corporativos
+- **Late Arrival**: Processo diferenciado para chegadas após início
+- **Problem Resolution**: Fluxo para problemas de duplicação ou perda
+
+**Social Features**:
+- **Event Feed**: Timeline social do evento com posts de participantes
+- **Networking Tools**: Match com outros participantes com interesses similares
+- **Photo Sharing**: Galeria colaborativa do evento
+- **Reviews and Ratings**: Sistema de avaliação pós-evento
+- **Future Event Recommendations**: Sugestões baseadas no evento atual
+
+**User Stories**:
+- Como participante, quero meu ingresso salvo no Apple Wallet com notificações automáticas sobre mudanças no evento
+- Como networking enthusiast, quero descobrir outros participantes com interesses similares antes do evento para maximizar conexões
+- Como organizadora social, quero transferir facilmente ingressos para amigas quando não puder comparecer
+
+#### 3.2.4 Experiência Durante o Evento
+
+**Event Companion App**:
+
+Funcionalidades que enriquecem a experiência durante o evento, aumentando engajamento e satisfação.
+
+**Real-Time Updates**:
+- **Schedule Changes**: Notificações automáticas sobre mudanças de cronograma
+- **Location Updates**: Mapas internos para eventos grandes, direcionamento
+- **Speaker Information**: Bio, redes sociais, materiais adicionais dos palestrantes
+- **Networking Opportunities**: Alertas sobre coffee breaks, networking sessions
+- **Emergency Information**: Comunicação crítica sobre segurança ou evacuação
+
+**Interactive Features**:
+- **Live Polling**: Enquetes em tempo real durante palestras
+- **Q&A System**: Perguntas anônimas para palestrantes com sistema de likes
+- **Session Rating**: Avaliação individual de palestras/atividades
+- **Social Wall**: Feed colaborativo com posts dos participantes
+- **Gamification**: Points, badges, leaderboards para engajamento
+
+**Content Access**:
+- **Session Materials**: Download de slides, materiais complementares
+- **Recording Access**: Para eventos que oferecem gravações
+- **Notes Sharing**: Sistema de notas colaborativas
+- **Resource Library**: Links, referências, contatos compartilhados pelos organizadores
+- **Offline Content**: Download para acesso sem internet
+
+**User Stories**:
+- Como participante de conferência, quero fazer perguntas anônimas via app e ver as mais votadas serem respondidas pelo palestrante
+- Como participante de workshop, quero baixar os materiais para meu dispositivo antes da sessão para não depender de wifi
+- Como networkeer, quero receber notificação quando pessoas com perfil interessante estão na mesma área do evento
+
+---
+
+## 4. Requisitos Técnicos
+
+### 4.1 Arquitetura do Sistema
+
+**Arquitetura Cloud-Native Microserviços**:
+
+O sistema será desenvolvido seguindo princípios de arquitetura distribuída com microserviços independentes, permitindo escalabilidade horizontal e manutenibilidade superior.
+
+**Core Services Architecture**:
+- **API Gateway**: Kong ou AWS API Gateway para roteamento, rate limiting e autenticação
+- **User Management Service**: Autenticação, autorização, perfis de usuário
+- **Event Management Service**: CRUD de eventos, templates, configurações
+- **Payment Processing Service**: Integração com gateways, processamento de transações
+- **Notification Service**: Email, SMS, push notifications com queues assíncronas
+- **Analytics Service**: Coleta, processamento e entrega de métricas
+- **File Storage Service**: Upload, processamento e CDN de imagens/vídeos
+- **Search Service**: Elasticsearch para busca avançada e recomendações
+
+**Database Strategy**:
+- **PostgreSQL**: Database principal para dados transacionais e relacionais
+- **Redis**: Cache distribuído e session storage
+- **Elasticsearch**: Search engine e analytics data store
+- **S3-Compatible Storage**: Para arquivos estáticos (CloudFlare R2 ou AWS S3)
+- **MongoDB**: Para dados não-estruturados (logs, analytics events)
+
+**Infrastructure as Code**:
+- **Container Strategy**: Docker containers com Kubernetes orchestration
+- **Cloud Provider**: AWS/Azure com multi-region deployment capability
+- **CDN**: CloudFlare para performance global
+- **Monitoring**: Datadog ou New Relic para observability completa
+- **CI/CD**: GitHub Actions com automated testing e deployment
+
+### 4.2 Tecnologias Recomendadas
+
+**Frontend Stack**:
+- **Framework**: Next.js 14+ com App Router e Server Components
+- **UI Library**: TailwindCSS + Shadcn/ui para design system consistente
+- **State Management**: Zustand para client state, TanStack Query para server state
+- **Forms**: React Hook Form + Zod para validação type-safe
+- **Rich Text Editor**: Novel.sh ou Tiptap para editor drag-and-drop
+- **Charts**: Recharts para dashboards e analytics
+- **Mobile**: Progressive Web App (PWA) com service workers
+
+**Backend Stack**:
+- **Framework**: NestJS com TypeScript para arquitetura enterprise-grade
+- **Database ORM**: Prisma para type-safety e migrations
+- **Authentication**: Auth0 ou NextAuth para OAuth e JWT management
+- **Queue System**: Bull/BullMQ com Redis para background jobs
+- **File Processing**: Sharp para image optimization, FFmpeg para video
+- **Email Service**: SendGrid ou Mailgun com template engine
+- **Testing**: Jest + Supertest para unit/integration tests
+
+**DevOps & Infrastructure**:
+- **Containerization**: Docker + Kubernetes (EKS/AKS)
+- **API Documentation**: Swagger/OpenAPI auto-generated
+- **Logging**: Winston with structured logging
+- **Error Tracking**: Sentry for error monitoring
+- **Performance**: APM tools para bottleneck identification
+- **Security**: OWASP compliance, vulnerability scanning
+
+### 4.3 Integrações Necessárias
+
+**Payment Gateways (Prioritário)**:
+- **Stripe**: Para cartões internacionais e subscriptions
+- **Mercado Pago**: PIX, cartões, boleto com split payments
+- **PagSeguro**: Alternativa para redundância
+- **Asaas**: Para split payments e marketplace features
+- **Cielo**: Para clientes enterprise que exigem
+
+**Communication Providers**:
+- **SendGrid**: Email transacional e marketing
+- **Twilio**: SMS e WhatsApp Business API
+- **OneSignal**: Push notifications cross-platform
+- **Mailgun**: Backup email provider para redundância
+- **AWS SES**: Cost-effective option para volume alto
+
+**Third-Party Services**:
+- **Google Maps API**: Geolocation e mapas interativos
+- **Google Calendar**: Calendar integration para participants
+- **Zoom/Teams**: Para eventos virtuais e híbridos
+- **Cloudinary**: Image/video processing e optimization
+- **Auth0**: Identity management e social logins
+- **Segment**: Analytics data pipeline e customer data platform
+
+**Business Intelligence**:
+- **Google Analytics 4**: Web analytics e conversion tracking
+- **Facebook Pixel**: Para marketing attribution
+- **Hotjar**: User behavior analytics e heatmaps
+- **Mixpanel**: Product analytics e user journey tracking
+
+### 4.4 Requisitos de Performance e Escalabilidade
+
+**Performance Targets**:
+- **Page Load Time**: < 2 segundos para primeira visita, < 1 segundo para retornos
+- **API Response Time**: < 200ms para 95% das requests
+- **Database Query Time**: < 50ms para queries simples, < 500ms para analytics complexos
+- **Image Loading**: Progressive loading com lazy loading, < 1 segundo para hero images
+- **Mobile Performance**: Lighthouse score > 90 em Performance e Accessibility
+
+**Scalability Requirements**:
+- **Concurrent Users**: Sistema deve suportar 10,000 usuários simultâneos
+- **Peak Load**: Capability para 5x traffic durante flash sales ou eventos virais
+- **Database Scaling**: Read replicas e sharding strategy para growth
+- **CDN Strategy**: Global CDN com edge caching para assets estáticos
+- **Auto-Scaling**: Kubernetes HPA para scale automático baseado em CPU/memory
+
+**Availability & Reliability**:
+- **Uptime SLA**: 99.9% uptime garantido (máximo 8.77 horas downtime/ano)
+- **Disaster Recovery**: RTO < 4 horas, RPO < 1 hora
+- **Backup Strategy**: Daily automated backups com 30 dias retention
+- **Load Balancing**: Multi-AZ deployment com automatic failover
+- **Health Monitoring**: Comprehensive health checks em todos os services
+
+### 4.5 Segurança e Compliance
+
+**Security Framework**:
+- **Authentication**: OAuth 2.0 + OpenID Connect com MFA support
+- **Authorization**: RBAC (Role-Based Access Control) granular
+- **Data Encryption**: TLS 1.3 in transit, AES-256 at rest
+- **API Security**: Rate limiting, input validation, SQL injection prevention
+- **Session Management**: Secure JWT tokens com refresh strategy
+- **Vulnerability Management**: Regular security audits e penetration testing
+
+**LGPD Compliance**:
+- **Data Minimization**: Coleta apenas dados necessários para função
+- **Consent Management**: Clear opt-in/opt-out mechanisms
+- **Right to Access**: User portal para visualização de dados pessoais
+- **Right to Delete**: Automated data deletion workflows
+- **Data Portability**: Export functionality em formatos standard
+- **Audit Logs**: Complete audit trail de access e modifications
+
+**PCI-DSS Compliance**:
+- **Payment Data**: Never store sensitive card data (tokenization only)
+- **Network Security**: Firewalls, network segmentation, IDS/IPS
+- **Vulnerability Management**: Regular scans e patching procedures
+- **Access Control**: Least privilege principle, regular access reviews
+- **Monitoring**: Real-time monitoring de payment processing flows
+
+### 4.6 Disponibilidade e Disaster Recovery
+
+**High Availability Design**:
+- **Multi-Region Deployment**: Primary em São Paulo, DR em Virginia
+- **Database Clustering**: PostgreSQL cluster com automatic failover
+- **Service Redundancy**: Minimum 2 instances por service em production
+- **Load Balancer**: Application Load Balancer com health checks
+- **Circuit Breaker Pattern**: Para graceful degradation durante outages
+
+**Backup and Recovery**:
+- **Database Backups**: Point-in-time recovery capability
+- **Application Backups**: Docker image versioning e rollback capability  
+- **File Storage Backups**: Cross-region replication para S3 buckets
+- **Configuration Backups**: Infrastructure as Code em version control
+- **Testing**: Monthly DR testing com documented procedures
+
+**Monitoring and Alerting**:
+- **Infrastructure Monitoring**: CPU, memory, disk, network metrics
+- **Application Monitoring**: Response times, error rates, throughput
+- **Business Monitoring**: Revenue metrics, conversion rates, user behavior
+- **Alert Strategy**: Tiered alerting (info, warning, critical) com escalation
+- **Dashboard Strategy**: Real-time operational dashboards para team
+
+---
+
+## 5. Experiência do Usuário (UX/UI)
+
+### 5.1 Jornada do Usuário Completa para Organizadores
+
+**Onboarding Journey (Dias 1-7)**:
+
+**Day 0 - Sign Up**:
+- Landing page otimizada com social proof e demo video
+- Sign-up form mínimo (email, senha, tipo de evento)
+- Email de confirmação com quick-start guide
+- Redirect para wizard de setup do primeiro evento
+
+**Day 1 - First Event Creation**:
+- Tutorial interativo do editor drag-and-drop
+- Template selection baseado no tipo de evento declarado
+- Setup básico: título, data, local, preço
+- Preview em tempo real durante configuração
+- Publicação com analytics setup automático
+
+**Days 2-3 - Configuration & Customization**:
+- Email sequence com dicas de otimização
+- Tutoriais em vídeo sobre features avançadas
+- Customização visual: branding, cores, layout
+- Setup de integração de pagamento
+- Configuração de email marketing
+
+**Days 4-7 - Launch Preparation**:
+- Checklist pré-lançamento automatizado
+- Review de configurações críticas
+- Sugestões de marketing baseadas no tipo de evento
+- Setup de tracking e analytics
+- Go-live com monitoring ativo
+
+**Ongoing Usage Journey**:
+
+**Pre-Event Phase (30-60 days before)**:
+- Dashboard com countdown e milestones
+- Marketing suggestions baseadas em performance
+- Email campaigns automatizadas
+- Sales tracking com projections
+- Attendee engagement tools
+
+**Event Approach Phase (7 days before)**:
+- Final preparations checklist
+- Communication intensification
+- Check-in setup and testing
+- Last-minute promotion tools
+- Support escalation preparation
+
+**Event Day**:
+- Real-time dashboard com key metrics
+- Check-in monitoring e problem resolution
+- Live communication tools
+- Performance tracking
+- Social media monitoring
+
+**Post-Event Phase (7 days after)**:
+- Automated thank you sequences
+- Analytics e performance reports
+- Feedback collection from attendees
+- Financial reconciliation
+- Next event planning suggestions
+
+### 5.2 Jornada do Usuário Completa para Participantes
+
+**Discovery to Registration Journey**:
+
+**Discovery Phase**:
+- Organic discovery via search, social media, ou recommendations
+- Landing page otimizada com hero video/image
+- Key information immediately visible: date, location, price, highlights
+- Social proof: attendee count, reviews, past event photos
+- Clear value proposition e agenda preview
+
+**Consideration Phase**:
+- Detailed event information com FAQ
+- Speaker/organizer credentials
+- Past attendee testimonials
+- Refund policy e terms claramente stated
+- Comparison com similar events (if applicable)
+
+**Registration Phase**:
+- Streamlined checkout process (< 3 minutes)
+- Multiple payment options com security assurance
+- Mobile-optimized experience
+- Guest checkout option
+- Immediate confirmation com calendar integration
+
+**Pre-Event Journey**:
+- Welcome email sequence com event details
+- Preparation materials e pre-work (if applicable)
+- Networking opportunities com outros attendees
+- Event app download e setup
+- Final reminders com logistics information
+
+**Event Experience Journey**:
+- Easy check-in com digital tickets
+- Real-time event information e updates
+- Interactive features: polls, Q&A, networking
+- Content access: slides, materials, recordings
+- Social sharing opportunities
+
+**Post-Event Journey**:
+- Thank you email com event summary
+- Access to recordings e materials
+- Feedback survey com incentives
+- Future event recommendations
+- Community access para networking continuado
+
+### 5.3 Wireframes Conceituais Principais
+
+**Organizador - Dashboard Principal**:
+```
+[Header: Logo, Notifications, Profile Menu]
+[Quick Stats: Revenue | Attendees | Days to Event | Conversion Rate]
+[Action Cards: Create Event | View Reports | Email Campaigns | Settings]
+[Recent Events Table: Name | Date | Status | Attendees | Revenue | Actions]
+[Charts Section: Sales Over Time | Traffic Sources | Conversion Funnel]
+```
+
+**Organizador - Editor de Evento**:
+```
+[Top Bar: Save | Preview | Publish | Settings]
+[Left Panel: Components Library | Media Library | Brand Assets]
+[Center Canvas: Drag-and-Drop Event Page]
+[Right Panel: Component Properties | Styles | SEO Settings]
+[Bottom Bar: Mobile/Tablet/Desktop Preview Toggle]
+```
+
+**Participante - Event Discovery**:
+```
+[Header: Search Bar | Filters | Location | Profile]
+[Hero Section: Featured Events Carousel]
+[Filter Bar: Category | Date | Price | Location | Format]
+[Events Grid: Event Cards com Image, Title, Date, Price, Quick Actions]
+[Map View Toggle | Calendar View Toggle]
+[Footer: Categories, Support, About]
+```
+
+**Participante - Event Detail Page**:
+```
+[Hero Image/Video com Event Title, Date, Location]
+[CTA Section: Register Button | Share | Save]
+[Event Info Tabs: About | Schedule | Speakers | Location | FAQ]
+[Ticket Selection: Types, Prices, Quantities]
+[Social Proof: Attendee Count, Reviews, Past Photos]
+[Organizer Info: Bio, Contact, Other Events]
+```
+
+### 5.4 Requisitos de Acessibilidade
+
+**WCAG 2.1 AA Compliance**:
+
+**Visual Accessibility**:
+- **Contrast Ratios**: Minimum 4.5:1 para texto normal, 3:1 para texto grande
+- **Color Independence**: Information não baseada apenas em color
+- **Font Scaling**: Support até 200% zoom sem perda de funcionalidade
+- **Focus Indicators**: Visible focus indicators para keyboard navigation
+- **Screen Reader**: Semantic HTML com ARIA labels adequados
+
+**Motor Accessibility**:
+- **Keyboard Navigation**: All functionality accessible via keyboard
+- **Touch Targets**: Minimum 44px touch targets para mobile
+- **Click Areas**: Generous click areas para links e buttons
+- **Timeout Options**: Extendable timeouts para forms complexos
+- **Motion Controls**: Option para disable animations/auto-playing content
+
+**Cognitive Accessibility**:
+- **Clear Language**: Plain language com reading level apropriado
+- **Consistent Navigation**: Predictable navigation patterns
+- **Error Prevention**: Clear error messages com correction suggestions
+- **Help Documentation**: Contextual help available throughout
+- **Progressive Disclosure**: Complex tasks broken into simple steps
+
+### 5.5 Design System e Guidelines
+
+**Visual Identity**:
+- **Color Palette**: Primary blues, secondary greens, accent oranges
+- **Typography**: Inter para headings, Source Sans Pro para body text
+- **Iconography**: Consistent icon library (Feather ou Heroicons)
+- **Photography**: High-quality, diverse, authentic event photography
+- **Illustration Style**: Modern, friendly, inclusive illustration approach
+
+**Component Library**:
+- **Buttons**: Primary, secondary, tertiary variants com states
+- **Forms**: Input fields, selects, checkboxes, validation states
+- **Navigation**: Headers, sidebars, breadcrumbs, pagination
+- **Cards**: Event cards, info cards, stats cards
+- **Modals**: Confirmations, forms, media viewers
+- **Tables**: Data tables com sorting, filtering, pagination
+
+**Responsive Strategy**:
+- **Mobile First**: Design e development starting com mobile
+- **Breakpoints**: 375px (mobile), 768px (tablet), 1024px (desktop), 1440px (large)
+- **Grid System**: 12-column grid com flexible gutters
+- **Image Strategy**: Responsive images com art direction
+- **Performance**: Lazy loading, progressive enhancement
+
+### 5.6 Responsividade Mobile-First
+
+**Mobile Experience Priorities**:
+
+**Core Mobile Features**:
+- **One-Handed Navigation**: Bottom navigation bars para easy thumb access
+- **Swipe Gestures**: Natural swipe patterns para carousel navigation
+- **Touch Optimization**: Large touch targets, haptic feedback
+- **Offline Capability**: Basic functionality works offline
+- **Push Notifications**: Smart notification strategy sem spam
+
+**Progressive Web App Features**:
+- **App Shell**: Fast-loading app shell para instant perceived performance
+- **Service Worker**: Offline functionality para critical paths
+- **Add to Home Screen**: Native app-like installation
+- **Background Sync**: Offline actions synced when connection restored
+- **Web Push**: Native push notifications
+
+**Mobile-Specific UI Patterns**:
+- **Pull to Refresh**: For content updates
+- **Infinite Scroll**: For event discovery
+- **Floating Action Button**: For primary actions
+- **Bottom Sheets**: For secondary actions and filters
+- **Sticky Headers**: For navigation context
+
+**Performance Optimizations**:
+- **Code Splitting**: Route-based code splitting para faster initial load
+- **Image Optimization**: WebP format com fallbacks, lazy loading
+- **Font Strategy**: Font display swap para avoid invisible text
+- **Critical CSS**: Inline critical CSS para eliminate render blocking
+- **Service Worker Caching**: Intelligent caching strategy
+
+---
+
+## 6. Sistema de Templates e Personalização
+
+### 6.1 Biblioteca de Templates por Categoria
+
+**Templates para Eventos Religiosos (15 templates)**:
+
+**Template: "Retiro Espiritual"**
+- **Layout**: Header com countdown, seção de inscrição destacada, cronograma em cards, galeria de fotos de retiros anteriores
+- **Color Scheme**: Blues suaves com accents dourados, transmite paz e espiritualidade
+- **Components**: Testimonials de participantes anteriores, mapa de localização, lista de itens para levar
+- **CTA Strategy**: "Garante sua Vaga" com urgência sutil, opções de parcelamento destacadas
+
+**Template: "Conferência de Igreja"**
+- **Layout**: Hero com vídeo de chamada, grid de palestrantes, cronograma detalhado, seção de patrocinadores
+- **Color Scheme**: Cores da denominação com professional blues
+- **Components**: Bio completa dos palestrantes, agenda interativa, informações de hospedagem
+- **Special Features**: Multi-sessões com seleção individual, opções de transmissão online
+
+**Templates para Eventos Corporativos (12 templates)**:
+
+**Template: "Workshop Profissional"**
+- **Layout**: Header executivo, credenciais do instrutor, currículo detalhado, certificação info
+- **Color Scheme**: Corporate blues e grays com accent colors vibrantes
+- **Components**: Learning objectives, pré-requisitos, materials inclusos, networking session
+- **CTA Strategy**: "Invista no seu Desenvolvimento" com ROI calculator
+
+**Template: "Networking Corporativo"**
+- **Layout**: Event highlights em carousel, speaker lineup, agenda flexível, sponsor showcase
+- **Color Scheme**: Professional dengan modern accents
+- **Components**: Attendee profiles preview, industry insights, connection tools
+- **Special Features**: LinkedIn integration, business card scanner info
+
+**Templates para Eventos Sociais (20 templates)**:
+
+**Template: "Casamento Elegante"**
+- **Layout**: Romantic hero section, love story timeline, wedding party intro, registry links
+- **Color Scheme**: Pastels com gold accents, opcões para diferentes paletas
+- **Components**: RSVP com meal selection, accommodation info, photo gallery, gift registry
+- **Special Features**: Guest message board, live streaming option, photo sharing
+
+**Template: "Aniversário Festivo"**
+- **Layout**: Fun, colorful header, birthday person spotlight, party details, photo memories
+- **Color Scheme**: Bright, celebratory colors com customization options
+- **Components**: Gift suggestions, party games info, music requests, photo booth
+- **Special Features**: Age-appropriate customizations, theme-based variants
+
+### 6.2 Editor Visual Drag-and-Drop (Especificações Detalhadas)
+
+**Arquitetura Técnica do Editor**:
+
+**Core Framework**: 
+Baseado em React com biblioteca custom similar ao Notion ou Craft, utilizando:
+- **React DnD**: Para funcionalidade drag-and-drop nativa
+- **Slate.js ou TipTap**: Para rich text editing
+- **Canvas API**: Para preview em tempo real
+- **CSS Grid**: Para layout system flexível
+- **Styled Components**: Para theming dinâmico
+
+**Component System Architecture**:
+```typescript
+interface EditorComponent {
+  id: string;
+  type: 'header' | 'text' | 'image' | 'button' | 'form' | 'custom';
+  props: ComponentProps;
+  styles: StyleConfig;
+  responsive: ResponsiveConfig;
+  animations: AnimationConfig;
+}
+
+interface StyleConfig {
+  layout: LayoutProps;
+  typography: TypographyProps;
+  colors: ColorProps;
+  spacing: SpacingProps;
+  borders: BorderProps;
+  effects: EffectProps;
+}
+```
+
+**Available Components**:
+
+**Layout Components**:
+- **Section Container**: Full-width sections com background options
+- **Grid Container**: 1-6 column responsive grids
+- **Flex Container**: Flexible layouts com alignment controls
+- **Sidebar Layout**: Two-column layouts para content + sidebar
+- **Card Container**: Elevated containers com shadow/border options
+
+**Content Components**:
+- **Rich Text Editor**: Formatação completa com custom styles
+- **Image Gallery**: Single images, carousels, grid galleries
+- **Video Player**: YouTube, Vimeo embed com custom controls
+- **Button Builder**: CTA buttons com hover states e animations
+- **Icon Library**: 1000+ icons com size e color customization
+
+**Interactive Components**:
+- **Form Builder**: Multi-step forms com validation
+- **Countdown Timer**: Customizable countdown com multiple styles
+- **Social Media Embed**: Instagram, Facebook, Twitter integration
+- **Map Integration**: Google Maps com custom markers
+- **Testimonial Carousel**: Rotating testimonials com photos
+
+**Property Panel Features**:
+
+**Style Controls**:
+- **Visual Style Panel**: Color pickers, font selectors, spacing controls
+- **Responsive Controls**: Different styles para mobile, tablet, desktop
+- **Animation Panel**: Hover effects, scroll animations, loading animations
+- **Advanced CSS**: Custom CSS input para power users
+- **Design Tokens**: Consistent spacing, colors através do design
+
+**Content Management**:
+- **Asset Manager**: Organized file uploads com tagging
+- **Content Snippets**: Reusable content blocks
+- **Version History**: Undo/redo com branching capability
+- **Collaboration**: Real-time editing com comment system
+- **Preview Modes**: Live preview em diferentes device sizes
+
+### 6.3 Customização Avançada
+
+**Brand Kit Integration**:
+
+**Automatic Brand Extraction**:
+- **Logo Upload**: Automatic color palette extraction from logo
+- **Font Pairing**: AI-suggested font combinations based on brand
+- **Style Guide Generation**: Automatic style guide creation
+- **Consistency Checking**: Warnings quando design diverge do brand
+- **Brand Asset Library**: Centralized storage de branded assets
+
+**Advanced Theming System**:
+- **Color Theory Application**: Complementary color suggestions
+- **Typography Scaling**: Modular scale para consistent typography
+- **Spacing System**: Consistent spacing baseado em 8px grid
+- **Component Variants**: Multiple visual variants por component
+- **Dark Mode Support**: Automatic dark mode generation
+
+**CSS Custom Properties Integration**:
+```css
+:root {
+  --primary-color: #1a73e8;
+  --secondary-color: #34a853;
+  --accent-color: #fbbc04;
+  --text-primary: #202124;
+  --text-secondary: #5f6368;
+  --spacing-xs: 0.5rem;
+  --spacing-sm: 1rem;
+  --spacing-md: 1.5rem;
+  --spacing-lg: 2rem;
+  --spacing-xl: 3rem;
+}
+```
+
+### 6.4 Sistema de Preview em Tempo Real
+
+**Multi-Device Preview**:
+- **Device Frames**: iPhone, Android, iPad, desktop frames realísticos
+- **Interactive Preview**: Fully functional preview com form submissions
+- **Performance Preview**: Loading time simulation baseado no device
+- **Accessibility Preview**: Color blindness simulation, screen reader preview
+- **Social Media Preview**: Como página aparece quando shared
+
+**Collaborative Features**:
+- **Real-time Cursors**: Ver onde outros usuários estão editando
+- **Comment System**: Contextual comments em elements específicos
+- **Version Comparison**: Side-by-side comparison de versions
+- **Change Notifications**: Notifications quando collaborators fazem changes
+- **Role Permissions**: Different permission levels para team members
+
+---
+
+## 7. Modelo de Monetização
+
+### 7.1 Estrutura de Comissões por Transação
+
+**Pricing Tiered por Volume**:
+
+**Tier 1: Iniciante (0-100 transações/mês)**:
+- **Taxa**: 4,99% + R$ 0,99 por transação
+- **Justificativa**: Cobertura completa dos custos de gateway + margem adequada
+- **Target**: Organizadores pequenos, eventos esporádicos
+- **Benefícios**: Sem commitment, fácil entrada no mercado
+
+**Tier 2: Crescimento (101-500 transações/mês)**:
+- **Taxa**: 4,49% + R$ 0,79 por transação  
+- **Desconto**: 10% reduction em percentage + 20% em taxa fixa
+- **Target**: Organizadores regulares, pequenas empresas
+- **Benefícios**: Economia significativa, ferramentas avançadas
+
+**Tier 3: Estabelecido (501-2000 transações/mês)**:
+- **Taxa**: 3,99% + R$ 0,59 por transação
+- **Desconto**: 20% reduction total vs Tier 1
+- **Target**: Organizadores profissionais, empresas médias
+- **Benefícios**: Account manager, integrações premium
+
+**Tier 4: Enterprise (2000+ transações/mês)**:
+- **Taxa**: 3,49% + R$ 0,39 por transação
+- **Desconto**: 30% reduction total vs Tier 1
+- **Target**: Grandes organizadores, corporations
+- **Benefícios**: Custom integrations, dedicated support, SLA
+
+**Eventos Gratuitos**:
+- **Gratuito**: Até 100 participantes por evento
+- **Taxa Fixa**: R$ 1,99 por participante adicional
+- **Rationale**: Cobertura de custos de infraestrutura e suporte
+- **Value Add**: Ainda oferece todas ferramentas de marketing e analytics
+
+### 7.2 Planos de Assinatura Detalhados
+
+**Freemium Model Strategy**:
+
+O modelo freemium serve como acquisition tool, permitindo experimentação completa antes do commitment financeiro.
+
+**Starter Plan (R$ 0/mês) - Freemium**:
+- **Eventos**: 3 eventos ativos simultaneamente
+- **Participantes**: Até 100 por evento
+- **Templates**: 20 templates básicos
+- **Customização**: Limitada (3 cores, 2 fontes)
+- **Support**: Email support com SLA de 48h
+- **Analytics**: Relatórios básicos (30 dias de histórico)
+- **Branding**: "Powered by EventFlow" obrigatório
+
+**Professional Plan (R$ 99/mês)**:
+- **Eventos**: Ilimitados eventos ativos
+- **Participantes**: Até 500 por evento
+- **Templates**: 50+ templates premium + novos mensais
+- **Customização**: Completa (unlimited colors, fonts, CSS custom)
+- **Support**: Priority support com SLA de 8h
+- **Analytics**: Advanced analytics com 12 meses histórico
+- **Branding**: White-label completo
+- **Features**: A/B testing, advanced email marketing, API access
+
+**Enterprise Plan (R$ 299/mês)**:
+- **Eventos**: Unlimited tudo
+- **Participantes**: Unlimited
+- **Templates**: Access a designer-created custom templates
+- **Team**: Multi-user accounts com roles/permissions
+- **Integrations**: Custom API integrations, webhooks, SSO
+- **Support**: Dedicated success manager, phone support
+- **SLA**: 99.9% uptime guarantee
+- **Advanced Features**: White-label reseller rights, custom domain
+
+**Custom Enterprise (Pricing Negociado)**:
+- **Volume Discounts**: Para 10,000+ transações/mês
+- **Custom Development**: Funcionalidades specific às necessidades
+- **Infrastructure**: Dedicated instances ou private cloud
+- **Compliance**: Custom compliance requirements (SOC2, HIPAA)
+- **Integration**: Deep integration com existing systems
+
+### 7.3 Análise de Customer Lifetime Value (LTV)
+
+**LTV Calculation por Segment**:
+
+**Freemium to Paid Conversion**:
+- **Conversion Rate**: 15% freemium → paid dentro de 6 meses
+- **Average Time to Convert**: 3.2 meses
+- **Primary Conversion Trigger**: Hitting participant limit ou needing advanced features
+
+**Professional Segment LTV**:
+- **Average Subscription Life**: 24 meses
+- **Monthly Subscription**: R$ 99
+- **Transaction Revenue**: R$ 150/mês average (4% de R$ 3,750 em ticket sales)
+- **Total LTV**: (R$ 99 + R$ 150) × 24 = R$ 5,976
+- **Customer Acquisition Cost**: R$ 180
+- **LTV/CAC Ratio**: 33:1
+
+**Enterprise Segment LTV**:
+- **Average Subscription Life**: 36 meses
+- **Monthly Subscription**: R$ 299
+- **Transaction Revenue**: R$ 800/mês average
+- **Total LTV**: (R$ 299 + R$ 800) × 36 = R$ 39,564
+- **Customer Acquisition Cost**: R$ 1,200
+- **LTV/CAC Ratio**: 33:1
+
+### 7.4 Revenue Diversification Strategy
+
+**Primary Revenue Streams (85% of total)**:
+- **Transaction Fees**: 60% of revenue
+- **Subscription Plans**: 25% of revenue
+
+**Secondary Revenue Streams (15% of total)**:
+- **Premium Services**: 8% of revenue
+- **Partnership Commissions**: 4% of revenue
+- **Data/Analytics Products**: 3% of revenue
+
+**Premium Services Offering**:
+- **Event Setup Service**: R$ 500-2,000 para full event setup
+- **Design Service**: R$ 300-800 para custom design
+- **Marketing Consultation**: R$ 150/hora para marketing strategy
+- **Training/Onboarding**: R$ 200/hora para team training
+- **Priority Migration**: R$ 400 para migration de outras platforms
+
+**Partnership Revenue**:
+- **Venue Partnerships**: 5% commission em venue bookings
+- **Catering Partners**: 3% commission em catering orders
+- **Photography/Video**: 10% commission em service bookings
+- **Equipment Rental**: 8% commission em AV equipment
+- **Insurance Partners**: R$ 50 per insurance policy sold
+
+---
+
+## 8. Integrações Essenciais
+
+### 8.1 Gateways de Pagamento
+
+**Stripe Integration (Primary International)**:
+- **Capabilities**: Credit cards, digital wallets (Apple Pay, Google Pay)
+- **Markets**: International expansion, USD/EUR transactions
+- **Features**: Subscription management, marketplace payments, Connect platform
+- **Implementation**: Stripe Elements para PCI compliance, webhooks para real-time updates
+- **Split Payments**: Para marketplace functionality com automatic commission
+
+**Mercado Pago (Primary Brazilian)**:
+- **Capabilities**: PIX, cartões, boleto, Mercado Pago wallet
+- **Split Payments**: Native support para marketplace transactions
+- **Implementation**: SDK integration com transparent checkout
+- **PIX Integration**: Real-time PIX payments com QR codes dinâmicos
+- **Installments**: Até 12x installments com transparent fees
+
+**Integration Architecture**:
+```typescript
+interface PaymentGateway {
+  provider: 'stripe' | 'mercadopago' | 'pagseguro';
+  processPayment(transaction: Transaction): Promise<PaymentResult>;
+  setupSplitPayment(splits: SplitConfig[]): Promise<SplitSetup>;
+  handleWebhook(payload: WebhookPayload): Promise<void>;
+  refundPayment(transactionId: string): Promise<RefundResult>;
+}
+```
+
+**Fallback Strategy**:
+- **Primary Gateway Down**: Automatic failover para secondary gateway
+- **Geographic Routing**: Stripe para international, Mercado Pago para domestic
+- **Performance-Based Routing**: Route baseado em approval rates e response times
+- **Manual Override**: Admin capability para force specific gateway
+
+### 8.2 Provedores de Email
+
+**SendGrid (Primary
