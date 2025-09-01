@@ -86,7 +86,7 @@ export async function seedInitialData(): Promise<void> {
     }
 
     // Create a sample event if none exists
-    const existingEvents = await storage.getUserEvents("17698187"); // Default user ID
+    const existingEvents = await storage.getUserEvents("default-user-123"); // Use the user we created earlier
     if (existingEvents.length === 0) {
       const sampleEvent = await storage.createEvent({
         title: "Acampamento Next Level 2024",
@@ -94,7 +94,7 @@ export async function seedInitialData(): Promise<void> {
         startDate: new Date("2024-09-15T09:00:00Z"),
         endDate: new Date("2024-09-17T18:00:00Z"),
         capacity: 100,
-        organizerId: "17698187",
+        organizerId: "default-user-123", // Use the correct user ID
         categoryId: "religious",
         status: "published",
         slug: "acamp-next-level",

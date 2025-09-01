@@ -4,7 +4,12 @@ import { storage } from "../storage";
 export class AuthController {
   static async getUser(req: any, res: Response) {
     try {
-      const userId = req.user.claims.sub;
+      // Use session user instead of claims
+      const userId = req.session?.user?.id;
+      if (!userId) {
+        return res.status(401).json({ message: "User not authenticated" });
+      }
+      
       const user = await storage.getUser(userId);
       res.json(user);
     } catch (error) {
@@ -15,7 +20,12 @@ export class AuthController {
 
   static async updateUserProfile(req: any, res: Response) {
     try {
-      const userId = req.user.claims.sub;
+      // Use session user instead of claims
+      const userId = req.session?.user?.id;
+      if (!userId) {
+        return res.status(401).json({ message: "User not authenticated" });
+      }
+      
       const updates = req.body;
       
       const user = await storage.updateUser(userId, updates);
