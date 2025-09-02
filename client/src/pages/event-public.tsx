@@ -36,21 +36,17 @@ export default function EventPublic() {
   // Registration mutation
   const registerMutation = useMutation({
     mutationFn: async (data: any) => {
-      return apiRequest('POST', `/api/public/events/${params.slug}/register`, data);
+      const response = await apiRequest('POST', `/api/public/events/${params.slug}/register`, data);
+      return response.json(); // Parse the response JSON
     },
     onSuccess: (response: any) => {
       if (response.success) {
-        toast({
-          title: "Inscrição realizada com sucesso!",
-          description: `Total: R$ ${response.totalAmount.toFixed(2)}. ${response.paymentUrl ? 'Redirecionando para pagamento...' : 'Inscrição confirmada!'}`
-        });
+        // Store registration data in localStorage for confirmation page
+        localStorage.setItem(`registration_${response.paymentId}`, JSON.stringify(response));
         
-        // Redirect to payment after a short delay
-        if (response.paymentUrl) {
-          setTimeout(() => {
-            window.location.href = response.paymentUrl;
-          }, 2000);
-        }
+        // Redirect to confirmation page
+        const confirmationUrl = `/registration/confirmation?id=${response.paymentId}&eventSlug=${params.slug}`;
+        window.location.href = confirmationUrl;
       } else {
         toast({
           title: "Erro na inscrição",

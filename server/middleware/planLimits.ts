@@ -5,7 +5,11 @@ import { PlanService } from "../services/planService";
 export const checkPlanLimit = (action: 'events' | 'participants' | 'templates' | 'storage' | 'emailsPerMonth'): RequestHandler => {
   return async (req: any, res, next) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.session?.user?.id;
+      if (!userId) {
+        return res.status(401).json({ message: "User not authenticated" });
+      }
+      
       const subscription = await storage.getUserSubscription(userId);
       const planId = subscription?.planId || 'free';
       
@@ -47,7 +51,11 @@ export const checkPlanLimit = (action: 'events' | 'participants' | 'templates' |
 
 export const requirePaidPlan: RequestHandler = async (req: any, res, next) => {
   try {
-    const userId = req.user.claims.sub;
+    const userId = req.session?.user?.id;
+    if (!userId) {
+      return res.status(401).json({ message: "User not authenticated" });
+    }
+    
     const subscription = await storage.getUserSubscription(userId);
     const planId = subscription?.planId || 'free';
     

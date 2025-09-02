@@ -19,7 +19,18 @@ import { type InsertEventSchema } from "@shared/schema";
 export default function EventEditor() {
   const { user } = useAuth();
   const [, setLocation] = useLocation();
-  const params = useParams<{ id: string }>();
+  const params = useParams<{ eventId: string }>();
+  
+  // Get eventId from route params or query string
+  const getEventId = () => {
+    if (params.eventId) return params.eventId;
+    
+    // Fallback to query parameter if route param is not available
+    const urlParams = new URLSearchParams(window.location.search);
+    return urlParams.get('eventId') || '';
+  };
+  
+  const eventId = getEventId();
   const { toast } = useToast();
   const [isPreview, setIsPreview] = useState(false);
   const [activeTab, setActiveTab] = useState('details');
@@ -35,11 +46,11 @@ export default function EventEditor() {
     pageComponents: [],
   });
 
-  const isEditing = !!params.id;
+  const isEditing = !!eventId;
 
   // Fetch existing event if editing
-  const { data: existingEvent } = useQuery({
-    queryKey: [`/api/events/${params.id}`],
+  const { data: existingEvent, isLoading: eventLoading, error: eventError } = useQuery({
+    queryKey: [`/api/events/${eventId}`],
     enabled: isEditing,
   });
 
@@ -56,7 +67,7 @@ export default function EventEditor() {
   
   // Fetch tickets for the event
   const { data: tickets = [], refetch: refetchTickets } = useQuery({
-    queryKey: [`/api/events/${params.id}/tickets`],
+    queryKey: [`/api/events/${eventId}/tickets`],
     enabled: isEditing,
   });
 
@@ -80,7 +91,7 @@ export default function EventEditor() {
   const saveEventMutation = useMutation({
     mutationFn: async (data: any) => {
       if (isEditing) {
-        return apiRequest('PUT', `/api/events/${params.id}`, data);
+        return apiRequest('PUT', `/api/events/${eventId}`, data);
       } else {
         return apiRequest('POST', '/api/events', data);
       }
@@ -151,7 +162,6 @@ export default function EventEditor() {
       endDate: eventData.endDate ? new Date(eventData.endDate).toISOString() : null,
     };
     
-    console.log('Submitting event data:', submitData);
     saveEventMutation.mutate(submitData);
   };
 
@@ -392,8 +402,8 @@ export default function EventEditor() {
             <TabsContent value="tickets" className="mt-6">
               {isEditing ? (
                 <TicketsTab 
-                  eventId={params.id} 
-                  tickets={tickets} 
+                  eventId={eventId || ''} 
+                  tickets={Array.isArray(tickets) ? tickets : []} 
                   refetchTickets={refetchTickets}
                 />
               ) : (
@@ -409,8 +419,9 @@ export default function EventEditor() {
                 <Card>
                   <CardContent className="p-6">
                     <DragDropEditor 
-                      data={eventData.pageComponents} 
+                      components={eventData.pageComponents || []} 
                       onChange={handleComponentsChange}
+                      templates={Array.isArray(templates) ? templates : []}
                     />
                   </CardContent>
                 </Card>

@@ -14,7 +14,11 @@ import { z } from "zod";
 export class EventController {
   static async getUserEvents(req: any, res: Response) {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.session?.user?.id;
+      if (!userId) {
+        return res.status(401).json({ message: "User not authenticated" });
+      }
+      
       const events = await storage.getUserEvents(userId);
       res.json(events);
     } catch (error) {
@@ -25,7 +29,10 @@ export class EventController {
 
   static async createEvent(req: any, res: Response) {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.session?.user?.id;
+      if (!userId) {
+        return res.status(401).json({ message: "User not authenticated" });
+      }
       
       // Check plan limits
       const subscription = await storage.getUserSubscription(userId);
@@ -58,7 +65,7 @@ export class EventController {
         });
       }
       
-      // Validate dates are valid
+      // Validate dates are valid (only if provided)
       if (bodyData.startDate && isNaN(bodyData.startDate.getTime())) {
         return res.status(400).json({ 
           message: "Data de início inválida",
@@ -86,6 +93,7 @@ export class EventController {
         ...bodyData,
         organizerId: userId,
         slug: generateSlug(req.body.title || 'event'),
+        status: 'active', // Set as active by default so it's publicly accessible
       });
       
       const event = await storage.createEvent(eventData);
@@ -108,7 +116,11 @@ export class EventController {
       }
       
       // Check if user owns the event
-      const userId = req.user.claims.sub;
+      const userId = req.session?.user?.id;
+      if (!userId) {
+        return res.status(401).json({ message: "User not authenticated" });
+      }
+      
       if (event.organizerId !== userId) {
         return res.status(403).json({ message: "Access denied" });
       }
@@ -128,7 +140,11 @@ export class EventController {
       }
       
       // Check if user owns the event
-      const userId = req.user.claims.sub;
+      const userId = req.session?.user?.id;
+      if (!userId) {
+        return res.status(401).json({ message: "User not authenticated" });
+      }
+      
       if (event.organizerId !== userId) {
         return res.status(403).json({ message: "Access denied" });
       }
@@ -144,7 +160,7 @@ export class EventController {
         bodyData.endDate = new Date(bodyData.endDate);
       }
       
-      // Validate dates if provided
+      // Validate dates if provided (only if provided)
       if (bodyData.startDate && isNaN(bodyData.startDate.getTime())) {
         return res.status(400).json({ 
           message: "Data de início inválida",
@@ -179,7 +195,11 @@ export class EventController {
         return res.status(404).json({ message: "Event not found" });
       }
       
-      const userId = req.user.claims.sub;
+      const userId = req.session?.user?.id;
+      if (!userId) {
+        return res.status(401).json({ message: "User not authenticated" });
+      }
+      
       if (event.organizerId !== userId) {
         return res.status(403).json({ message: "Access denied" });
       }
@@ -200,7 +220,11 @@ export class EventController {
         return res.status(404).json({ message: "Event not found" });
       }
       
-      const userId = req.user.claims.sub;
+      const userId = req.session?.user?.id;
+      if (!userId) {
+        return res.status(401).json({ message: "User not authenticated" });
+      }
+      
       if (event.organizerId !== userId) {
         return res.status(403).json({ message: "Access denied" });
       }
@@ -220,7 +244,11 @@ export class EventController {
         return res.status(404).json({ message: "Event not found" });
       }
       
-      const userId = req.user.claims.sub;
+      const userId = req.session?.user?.id;
+      if (!userId) {
+        return res.status(401).json({ message: "User not authenticated" });
+      }
+      
       if (event.organizerId !== userId) {
         return res.status(403).json({ message: "Access denied" });
       }
@@ -255,7 +283,11 @@ export class EventController {
         return res.status(404).json({ message: "Event not found" });
       }
       
-      const userId = req.user.claims.sub;
+      const userId = req.session?.user?.id;
+      if (!userId) {
+        return res.status(401).json({ message: "User not authenticated" });
+      }
+      
       if (event.organizerId !== userId) {
         return res.status(403).json({ message: "Access denied" });
       }
@@ -280,7 +312,11 @@ export class EventController {
         return res.status(404).json({ message: "Event not found" });
       }
       
-      const userId = req.user.claims.sub;
+      const userId = req.session?.user?.id;
+      if (!userId) {
+        return res.status(401).json({ message: "User not authenticated" });
+      }
+      
       if (event.organizerId !== userId) {
         return res.status(403).json({ message: "Access denied" });
       }
@@ -296,11 +332,21 @@ export class EventController {
   // Public event methods
   static async getPublicEvent(req: any, res: Response) {
     try {
+      console.log('getPublicEvent called with slug:', req.params.slug);
       const event = await storage.getEventBySlug(req.params.slug);
-      if (!event || event.status !== 'active') {
+      console.log('Event found:', !!event, 'Status:', event?.status);
+      
+      if (!event) {
         return res.status(404).json({ message: "Event not found" });
       }
       
+      // Accept active, draft, and published events
+      if (event.status !== 'active' && event.status !== 'draft' && event.status !== 'published') {
+        console.log('Event status not allowed:', event.status);
+        return res.status(404).json({ message: "Event not found" });
+      }
+      
+      console.log('Event status allowed, returning event');
       // Include category info
       const category = await storage.getEventCategory(event.categoryId);
       res.json({ ...event, category });
@@ -313,7 +359,7 @@ export class EventController {
   static async getPublicEventTickets(req: any, res: Response) {
     try {
       const event = await storage.getEventBySlug(req.params.slug);
-      if (!event || event.status !== 'active') {
+      if (!event || (event.status !== 'active' && event.status !== 'published')) {
         return res.status(404).json({ message: "Event not found" });
       }
       
@@ -334,7 +380,7 @@ export class EventController {
   static async publicRegisterForEvent(req: any, res: Response) {
     try {
       const event = await storage.getEventBySlug(req.params.slug);
-      if (!event || event.status !== 'active') {
+      if (!event || (event.status !== 'active' && event.status !== 'published')) {
         return res.status(404).json({ message: "Event not found" });
       }
       
@@ -373,7 +419,7 @@ export class EventController {
             phoneNumber: phone,
             customFields: { document: document },
             status: totalAmount > 0 ? 'pending_payment' : 'confirmed',
-            amountPaid: parseFloat(ticket.price || '0'),
+            amountPaid: String(parseFloat(ticket.price || '0')),
           });
           registrations.push(registration);
         }
@@ -420,7 +466,11 @@ export class EventController {
         return res.status(404).json({ message: "Event not found" });
       }
       
-      const userId = req.user.claims.sub;
+      const userId = req.session?.user?.id;
+      if (!userId) {
+        return res.status(401).json({ message: "User not authenticated" });
+      }
+      
       if (event.organizerId !== userId) {
         return res.status(403).json({ message: "Access denied" });
       }
@@ -499,7 +549,7 @@ export class EventController {
             phoneNumber: phone,
             customFields: { document: document },
             status: totalAmount > 0 ? 'pending_payment' : 'confirmed',
-            amountPaid: parseFloat(ticket.price || '0'),
+            amountPaid: String(parseFloat(ticket.price || '0')),
           });
           registrations.push(registration);
         }
@@ -538,7 +588,11 @@ export class EventController {
       }
       
       const event = await storage.getEvent(registration.eventId);
-      const userId = req.user.claims.sub;
+      const userId = req.session?.user?.id;
+      if (!userId) {
+        return res.status(401).json({ message: "User not authenticated" });
+      }
+      
       if (event?.organizerId !== userId) {
         return res.status(403).json({ message: "Access denied" });
       }
@@ -563,7 +617,11 @@ export class EventController {
       }
       
       const event = await storage.getEvent(registration.eventId);
-      const userId = req.user.claims.sub;
+      const userId = req.session?.user?.id;
+      if (!userId) {
+        return res.status(401).json({ message: "User not authenticated" });
+      }
+      
       if (event?.organizerId !== userId) {
         return res.status(403).json({ message: "Access denied" });
       }
@@ -584,7 +642,11 @@ export class EventController {
         return res.status(404).json({ message: "Event not found" });
       }
       
-      const userId = req.user.claims.sub;
+      const userId = req.session?.user?.id;
+      if (!userId) {
+        return res.status(401).json({ message: "User not authenticated" });
+      }
+      
       if (event.organizerId !== userId) {
         return res.status(403).json({ message: "Access denied" });
       }
@@ -641,7 +703,11 @@ export class EventController {
         return res.status(404).json({ message: "Event not found" });
       }
       
-      const userId = req.user.claims.sub;
+      const userId = req.session?.user?.id;
+      if (!userId) {
+        return res.status(401).json({ message: "User not authenticated" });
+      }
+      
       if (event.organizerId !== userId) {
         return res.status(403).json({ message: "Access denied" });
       }
@@ -651,74 +717,6 @@ export class EventController {
     } catch (error) {
       console.error("Error fetching registrations:", error);
       res.status(500).json({ message: "Failed to fetch registrations" });
-    }
-  }
-
-  static async getEventAnalytics(req: any, res: Response) {
-    try {
-      const event = await storage.getEvent(req.params.eventId);
-      if (!event) {
-        return res.status(404).json({ message: "Event not found" });
-      }
-      
-      const userId = req.user.claims.sub;
-      if (event.organizerId !== userId) {
-        return res.status(403).json({ message: "Access denied" });
-      }
-      
-      const analytics = await storage.getEventAnalytics(req.params.eventId);
-      res.json(analytics);
-    } catch (error) {
-      console.error("Error fetching analytics:", error);
-      res.status(500).json({ message: "Failed to fetch analytics" });
-    }
-  }
-
-  // Public routes for event registration
-  static async getPublicEvent(req: any, res: Response) {
-    try {
-      const event = await storage.getEventBySlug(req.params.slug);
-      if (!event) {
-        return res.status(404).json({ message: "Event not found" });
-      }
-      res.json(event);
-    } catch (error) {
-      console.error("Error fetching public event:", error);
-      res.status(500).json({ message: "Failed to fetch event" });
-    }
-  }
-
-  static async getPublicEventTickets(req: any, res: Response) {
-    try {
-      const event = await storage.getEventBySlug(req.params.slug);
-      if (!event) {
-        return res.status(404).json({ message: "Event not found" });
-      }
-      const tickets = await storage.getEventTickets(event.id);
-      res.json(tickets);
-    } catch (error) {
-      console.error("Error fetching public tickets:", error);
-      res.status(500).json({ message: "Failed to fetch tickets" });
-    }
-  }
-
-  static async publicRegisterForEvent(req: any, res: Response) {
-    try {
-      const event = await storage.getEventBySlug(req.params.slug);
-      if (!event) {
-        return res.status(404).json({ message: "Event not found" });
-      }
-      
-      // Call the existing registration method with the event ID
-      const mockReq = {
-        params: { eventId: event.id },
-        body: req.body
-      };
-      
-      return await EventController.registerForEvent(mockReq, res);
-    } catch (error) {
-      console.error("Error in public registration:", error);
-      res.status(500).json({ message: "Failed to register" });
     }
   }
 }

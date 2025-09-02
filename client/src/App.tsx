@@ -15,6 +15,7 @@ import PaymentMock from "@/pages/payment-mock";
 import Participants from "@/pages/participants";
 import Analytics from "@/pages/analytics";
 import Pricing from "@/pages/pricing";
+import RegistrationConfirmation from "@/pages/registration-confirmation";
 
 function Router() {
   const { isAuthenticated, isLoading } = useAuth();
@@ -35,6 +36,7 @@ function Router() {
       {/* Public routes - accessible without auth */}
       <Route path="/event/:slug" component={EventPublic} />
       <Route path="/payment/mock" component={PaymentMock} />
+      <Route path="/registration/confirmation" component={RegistrationConfirmation} />
       
       {!isAuthenticated ? (
         <>
@@ -46,7 +48,7 @@ function Router() {
           <Route path="/" component={Dashboard} />
           <Route path="/events" component={Events} />
           <Route path="/events/:eventId" component={EventDetails} />
-          <Route path="/events/:id/edit" component={EventEditor} />
+          <Route path="/events/:eventId/edit" component={EventEditor} />
           <Route path="/events/:eventId/participants" component={Participants} />
           <Route path="/events/:eventId/analytics" component={Analytics} />
           <Route path="/editor" component={EventEditor} />

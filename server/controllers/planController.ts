@@ -16,7 +16,11 @@ export class PlanController {
 
   static async subscribeToPlan(req: any, res: Response) {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.session?.user?.id;
+      if (!userId) {
+        return res.status(401).json({ message: "User not authenticated" });
+      }
+      
       const { planId, paymentMethod, cardInfo } = req.body;
 
       const plan = PlanService.getPlan(planId);
@@ -104,7 +108,11 @@ export class PlanController {
 
   static async cancelSubscription(req: any, res: Response) {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.session?.user?.id;
+      if (!userId) {
+        return res.status(401).json({ message: "User not authenticated" });
+      }
+      
       const subscription = await storage.getUserSubscription(userId);
       
       if (!subscription || !subscription.asaasSubscriptionId) {
@@ -127,7 +135,11 @@ export class PlanController {
 
   static async getUserSubscription(req: any, res: Response) {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.session?.user?.id;
+      if (!userId) {
+        return res.status(401).json({ message: "User not authenticated" });
+      }
+      
       const subscription = await storage.getUserSubscription(userId);
       
       if (!subscription) {

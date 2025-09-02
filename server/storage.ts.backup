@@ -51,7 +51,6 @@ export interface IStorage {
   updateTicket(id: string, ticket: Partial<InsertTicket>): Promise<Ticket>;
   getEventTickets(eventId: string): Promise<Ticket[]>;
   deleteTicket(id: string): Promise<void>;
-  getTicket(id: string): Promise<Ticket | undefined>;
   
   // Registration operations
   createRegistration(registration: InsertRegistration): Promise<Registration>;
@@ -100,12 +99,7 @@ export class DatabaseStorage implements IStorage {
       .onConflictDoUpdate({
         target: users.id,
         set: {
-          email: userData.email,
-          firstName: userData.firstName,
-          lastName: userData.lastName,
-          profileImageUrl: userData.profileImageUrl,
-          asaasCustomerId: userData.asaasCustomerId,
-          currentPlan: userData.currentPlan,
+          ...userData,
           updatedAt: new Date(),
         },
       })
@@ -113,10 +107,10 @@ export class DatabaseStorage implements IStorage {
     return user;
   }
 
-  async updateUser(id: string, data: Partial<UpsertUser>): Promise<User> {
+  async updateUser(id: string, userData: Partial<UpsertUser>): Promise<User> {
     const [user] = await db
       .update(users)
-      .set({ ...data, updatedAt: new Date() })
+      .set({ ...userData, updatedAt: new Date() })
       .where(eq(users.id, id))
       .returning();
     return user;
@@ -127,18 +121,27 @@ export class DatabaseStorage implements IStorage {
     const [subscription] = await db
       .select()
       .from(userSubscriptions)
-      .where(eq(userSubscriptions.userId, userId))
-      .orderBy(desc(userSubscriptions.createdAt));
+      .where(eq(userSubscriptions.userId, userId));
     return subscription;
   }
 
   async updateUserSubscription(userId: string, data: Partial<InsertUserSubscription>): Promise<UserSubscription> {
-    const [subscription] = await db
-      .update(userSubscriptions)
-      .set({ ...data, updatedAt: new Date() })
-      .where(eq(userSubscriptions.userId, userId))
-      .returning();
-    return subscription;
+    const existingSubscription = await this.getUserSubscription(userId);
+    
+    if (existingSubscription) {
+      const [subscription] = await db
+        .update(userSubscriptions)
+        .set({ ...data, updatedAt: new Date() })
+        .where(eq(userSubscriptions.userId, userId))
+        .returning();
+      return subscription;
+    } else {
+      const [subscription] = await db
+        .insert(userSubscriptions)
+        .values({ ...data, userId } as any)
+        .returning();
+      return subscription;
+    }
   }
 
   // Usage counting for plan limits
@@ -154,7 +157,7 @@ export class DatabaseStorage implements IStorage {
     const result = await db
       .select({ count: sql<number>`count(*)` })
       .from(templates)
-      .where(eq(templates.isPublic, true));
+      .where(eq(templates.categoryId, userId)); // assuming user can create custom templates
     return result[0]?.count || 0;
   }
 
@@ -218,15 +221,20 @@ export class DatabaseStorage implements IStorage {
       .orderBy(tickets.createdAt);
   }
 
-  async deleteTicket(id: string): Promise<void> {
-    await db.delete(tickets).where(eq(tickets.id, id));
-  }
-
   async getTicket(id: string): Promise<Ticket | undefined> {
     const [ticket] = await db.select().from(tickets).where(eq(tickets.id, id));
     return ticket;
   }
 
+  async getTicketById(id: string): Promise<Ticket | undefined> {
+    const [ticket] = await db.select().from(tickets).where(eq(tickets.id, id));
+    return ticket;
+  }
+
+  async deleteTicket(id: string): Promise<void> {
+    await db.delete(tickets).where(eq(tickets.id, id));
+  }
+  
   // Registration operations
   async getRegistration(id: string): Promise<Registration | undefined> {
     const [registration] = await db.select().from(registrations).where(eq(registrations.id, id));
@@ -380,6 +388,43 @@ export class DatabaseStorage implements IStorage {
         currency: 'BRL' 
       }).format(totalRevenue),
       conversionRate: totalEvents > 0 ? `${Math.round((totalParticipants / (totalEvents * 100)) * 100)}%` : '0%',
+    };
+  }
+
+  async getEventAnalytics(eventId: string): Promise<{
+    registrations: number;
+    revenue: string;
+    capacity: number;
+    conversionRate: number;
+  }> {
+    const [event] = await db.select().from(events).where(eq(events.id, eventId));
+    
+    const registrationStats = await db
+      .select({
+        count: sql<number>`count(*)`,
+        revenue: sql<number>`sum(${registrations.amountPaid})`
+      })
+      .from(registrations)
+      .where(
+        and(
+          eq(registrations.eventId, eventId),
+          eq(registrations.paymentStatus, 'paid')
+        )
+      );
+
+    const registrationCount = registrationStats[0]?.count || 0;
+    const totalRevenue = registrationStats[0]?.revenue || 0;
+    const capacity = event?.capacity || 0;
+    const conversionRate = capacity > 0 ? Math.round((registrationCount / capacity) * 100) : 0;
+
+    return {
+      registrations: registrationCount,
+      revenue: new Intl.NumberFormat('pt-BR', { 
+        style: 'currency', 
+        currency: 'BRL' 
+      }).format(totalRevenue),
+      capacity,
+      conversionRate,
     };
   }
 }

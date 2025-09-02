@@ -115,7 +115,12 @@ export default function Events() {
         ) : filteredEvents.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredEvents.map((event: any) => (
-              <Card key={event.id} className="overflow-hidden hover:shadow-lg transition-shadow cursor-pointer">
+              <Card 
+                key={event.id} 
+                className="overflow-hidden hover:shadow-lg transition-shadow cursor-pointer"
+                onClick={() => setLocation(`/events/${event.id}`)}
+                data-testid={`card-event-${event.id}`}
+              >
                 <div className="h-48 bg-gradient-to-br from-primary-100 to-secondary-100 flex items-center justify-center">
                   {event.imageUrl ? (
                     <img 
@@ -161,13 +166,20 @@ export default function Events() {
                       <Button 
                         size="sm" 
                         variant="outline"
-                        onClick={() => setLocation(`/events/${event.id}/edit`)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setLocation(`/events/${event.id}/edit`);
+                        }}
                         data-testid={`button-edit-event-${event.id}`}
                       >
                         Editar
                       </Button>
                       <Button 
                         size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setLocation(`/events/${event.id}`);
+                        }}
                         data-testid={`button-view-event-${event.id}`}
                       >
                         Ver

@@ -60,6 +60,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/public/events/:slug/tickets', EventController.getPublicEventTickets);
   app.post('/api/public/events/:slug/register', EventController.publicRegisterForEvent);
 
+  // Debug routes
+  app.get('/api/debug/events/slug/:slug', async (req, res) => {
+    try {
+      const { storage } = await import("../storage");
+      const event = await storage.getEventBySlug(req.params.slug);
+      res.json({
+        found: !!event,
+        event: event,
+        slug: req.params.slug,
+        status: event?.status
+      });
+    } catch (error) {
+      res.status(500).json({ error: String(error) });
+    }
+  });
+
+  // Debug route to list all events
+  app.get('/api/debug/events', async (req, res) => {
+    try {
+      const { storage } = await import("../storage");
+      const events = await storage.getUserEvents('default-user-123');
+      res.json({ 
+        count: events.length,
+        events: events.map(e => ({ id: e.id, title: e.title, slug: e.slug, status: e.status }))
+      });
+    } catch (error) {
+      res.status(500).json({ error: String(error) });
+    }
+  });
+
   // Analytics routes
   app.get('/api/events/:eventId/analytics', isAuthenticated, requirePaidPlan, EventController.getEventAnalytics);
 
