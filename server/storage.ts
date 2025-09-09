@@ -1147,38 +1147,54 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getGroupTotalRevenue(groupId: string): Promise<number> {
-    // Buscar receita de parcelas pagas
-    const installmentRevenue = await db
-      .select({ total: sql<number>`coalesce(sum(${paymentTransactions.amount}), 0)` })
-      .from(paymentTransactions)
-      .innerJoin(paymentInstallments, eq(paymentTransactions.installmentId, paymentInstallments.id))
-      .innerJoin(registrations, eq(paymentInstallments.registrationId, registrations.id))
-      .where(
-        and(
-          eq(registrations.groupId, groupId),
-          eq(paymentTransactions.type, 'payment'),
-          eq(paymentTransactions.status, 'completed')
-        )
-      );
+    try {
+      console.log('=== GET GROUP TOTAL REVENUE ===');
+      console.log('GroupId:', groupId);
+      
+      // Buscar receita de parcelas pagas
+      const installmentRevenue = await db
+        .select({ total: sql<number>`coalesce(sum(${paymentTransactions.amount}), 0)` })
+        .from(paymentTransactions)
+        .innerJoin(paymentInstallments, eq(paymentTransactions.installmentId, paymentInstallments.id))
+        .innerJoin(registrations, eq(paymentInstallments.registrationId, registrations.id))
+        .where(
+          and(
+            eq(registrations.groupId, groupId),
+            eq(paymentTransactions.type, 'payment'),
+            eq(paymentTransactions.status, 'completed')
+          )
+        );
 
-    // Buscar receita de pagamentos à vista
-    const upfrontRevenue = await db
-      .select({ total: sql<number>`coalesce(sum(${paymentTransactions.amount}), 0)` })
-      .from(paymentTransactions)
-      .innerJoin(registrations, eq(paymentTransactions.registrationId, registrations.id))
-      .where(
-        and(
-          eq(registrations.groupId, groupId),
-          eq(paymentTransactions.type, 'payment'),
-          eq(paymentTransactions.status, 'completed'),
-          isNull(paymentTransactions.installmentId) // Pagamentos à vista não têm installmentId
-        )
-      );
+      console.log('Installment revenue result:', installmentRevenue);
 
-    const installmentTotal = installmentRevenue[0]?.total || 0;
-    const upfrontTotal = upfrontRevenue[0]?.total || 0;
-    
-    return installmentTotal + upfrontTotal;
+      // Buscar receita de pagamentos à vista
+      const upfrontRevenue = await db
+        .select({ total: sql<number>`coalesce(sum(${paymentTransactions.amount}), 0)` })
+        .from(paymentTransactions)
+        .innerJoin(registrations, eq(paymentTransactions.registrationId, registrations.id))
+        .where(
+          and(
+            eq(registrations.groupId, groupId),
+            eq(paymentTransactions.type, 'payment'),
+            eq(paymentTransactions.status, 'completed'),
+            isNull(paymentTransactions.installmentId) // Pagamentos à vista não têm installmentId
+          )
+        );
+
+      console.log('Upfront revenue result:', upfrontRevenue);
+
+      const installmentTotal = installmentRevenue[0]?.total || 0;
+      const upfrontTotal = upfrontRevenue[0]?.total || 0;
+      
+      console.log('Installment total:', installmentTotal);
+      console.log('Upfront total:', upfrontTotal);
+      console.log('Final total:', installmentTotal + upfrontTotal);
+      
+      return installmentTotal + upfrontTotal;
+    } catch (error) {
+      console.error('Error in getGroupTotalRevenue:', error);
+      return 0;
+    }
   }
 
   async getGroupOverduePayments(groupId: string): Promise<number> {

@@ -352,6 +352,11 @@ export class GroupController {
         return res.status(401).json({ error: 'Usuário não autenticado' });
       }
 
+      if (!userRole) {
+        console.log('ERROR: UserRole não definido');
+        return res.status(500).json({ error: 'Erro interno: role do usuário não definido' });
+      }
+
       const groups = [];
       let totalParticipants = 0;
       let totalConfirmed = 0;
