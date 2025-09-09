@@ -99,6 +99,7 @@ app.put('/api/installments/:installmentId/mark-as-paid', isAuthenticated, EventC
 
   // Group specific routes
   app.get('/api/groups/:groupId/participants', isAuthenticated, requireGroupParticipants, GroupController.getGroupParticipants);
+  app.get('/api/groups/:groupId/participants/:participantId', isAuthenticated, requireGroupParticipants, GroupController.getGroupParticipant);
   app.get('/api/groups/:groupId/payments', isAuthenticated, requireGroupPayments, GroupController.getGroupPayments);
 
   // Payment Plan routes

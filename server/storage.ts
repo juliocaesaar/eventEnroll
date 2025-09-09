@@ -1044,6 +1044,59 @@ export class DatabaseStorage implements IStorage {
     return participantsWithInstallments;
   }
 
+  async getGroupParticipantById(groupId: string, participantId: string): Promise<any | null> {
+    const participant = await db
+      .select()
+      .from(registrations)
+      .where(
+        and(
+          eq(registrations.id, participantId),
+          eq(registrations.groupId, groupId)
+        )
+      )
+      .limit(1);
+    
+    if (participant.length === 0) {
+      return null;
+    }
+
+    const participantData = participant[0];
+    
+    // Carregar parcelas
+    const installments = await db
+      .select()
+      .from(paymentInstallments)
+      .where(eq(paymentInstallments.registrationId, participantId))
+      .orderBy(paymentInstallments.installmentNumber);
+    
+    // Carregar dados do grupo e evento
+    const group = await db
+      .select()
+      .from(groups)
+      .where(eq(groups.id, groupId))
+      .limit(1);
+    
+    const event = group.length > 0 ? await db
+      .select()
+      .from(events)
+      .where(eq(events.id, group[0].eventId))
+      .limit(1) : [];
+    
+    return {
+      ...participantData,
+      installments: installments.map(installment => ({
+        id: installment.id,
+        installmentNumber: installment.installmentNumber,
+        amount: installment.originalAmount,
+        dueDate: installment.dueDate,
+        paidDate: installment.paidDate,
+        status: installment.status
+      })),
+      group: group[0] || null,
+      event: event[0] || null
+    };
+  }
+
   // Event participants with installments
   async getEventParticipantsWithInstallments(eventId: string): Promise<any[]> {
     const participants = await db

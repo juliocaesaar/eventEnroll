@@ -552,6 +552,45 @@ export class GroupController {
   }
 
   /**
+   * Obter um participante específico de um grupo
+   */
+  static async getGroupParticipant(req: Request, res: Response) {
+    try {
+      console.log('=== GET GROUP PARTICIPANT ===');
+      const { groupId, participantId } = req.params;
+      const userId = (req as any).user?.userId;
+
+      console.log('GroupId:', groupId);
+      console.log('ParticipantId:', participantId);
+      console.log('UserId:', userId);
+
+      if (!userId) {
+        console.log('ERROR: Usuário não autenticado');
+        return res.status(401).json({ error: 'Usuário não autenticado' });
+      }
+
+      // Verificar se o usuário tem acesso ao grupo
+      const hasAccess = await storage.checkUserGroupAccess(userId, groupId);
+      if (!hasAccess) {
+        console.log('ERROR: Acesso negado ao grupo');
+        return res.status(403).json({ error: 'Acesso negado ao grupo' });
+      }
+
+      const participant = await storage.getGroupParticipantById(groupId, participantId);
+      if (!participant) {
+        console.log('ERROR: Participante não encontrado');
+        return res.status(404).json({ error: 'Participante não encontrado' });
+      }
+
+      console.log('Participant found:', participant.id);
+      res.json(participant);
+    } catch (error) {
+      console.error('Erro ao obter participante do grupo:', error);
+      res.status(500).json({ error: 'Erro interno do servidor' });
+    }
+  }
+
+  /**
    * Obter pagamentos de um grupo
    */
   static async getGroupPayments(req: Request, res: Response) {

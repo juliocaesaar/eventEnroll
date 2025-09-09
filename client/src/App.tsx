@@ -44,6 +44,7 @@ import EventParticipants from "@/pages/event-participants";
 import GroupPayments from "@/pages/group-payments";
 import GroupDashboard from "@/pages/group-dashboard";
 import GroupManagement from "@/pages/group-management";
+import ParticipantDetails from "@/pages/participant-details";
 import UserManagement from "@/pages/admin/users";
 import RoleManagement from "@/pages/admin/roles";
 import PIXTest from "@/pages/pix-test";
@@ -161,6 +162,12 @@ const GroupManagementPage = () => (
   </AuthenticatedPage>
 );
 
+const ParticipantDetailsPage = () => (
+  <AuthenticatedPage>
+    <ParticipantDetails />
+  </AuthenticatedPage>
+);
+
 const UserManagementPage = () => (
   <AdminRoute>
     <AuthenticatedPage>
@@ -256,6 +263,7 @@ function Router() {
           <Route path="/group-payments" component={GroupPaymentsPage} />
           <Route path="/groups/dashboard" component={GroupDashboardPage} />
           <Route path="/groups/:groupId/manage" component={GroupManagementPage} />
+          <Route path="/groups/:groupId/participants/:participantId" component={ParticipantDetailsPage} />
           <Route path="/admin/users" component={UserManagementPage} />
           <Route path="/admin/roles" component={RoleManagementPage} />
           <Route path="/pix-test" component={PIXTestPage} />

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useLocation } from 'wouter';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -39,6 +40,7 @@ interface GroupParticipantsProps {
 }
 
 export default function GroupParticipants({ groupId, onUpdate, eventData }: GroupParticipantsProps) {
+  const [, setLocation] = useLocation();
   const [participants, setParticipants] = useState<Participant[]>([]);
   const [filteredParticipants, setFilteredParticipants] = useState<Participant[]>([]);
   const [loading, setLoading] = useState(true);
@@ -52,6 +54,22 @@ export default function GroupParticipants({ groupId, onUpdate, eventData }: Grou
   const [showPaymentConfirmation, setShowPaymentConfirmation] = useState(false);
   const [installmentToConfirm, setInstallmentToConfirm] = useState<any>(null);
   const { toast } = useToast();
+
+  // Função para detectar se é mobile
+  const isMobile = () => {
+    return window.innerWidth < 768; // md breakpoint
+  };
+
+  // Função para abrir detalhes do participante
+  const openParticipantDetails = (participant: Participant) => {
+    if (isMobile()) {
+      // No mobile, navegar para página completa
+      setLocation(`/groups/${groupId}/participants/${participant.id}`);
+    } else {
+      // No desktop, abrir modal
+      setSelectedParticipant(participant);
+    }
+  };
 
   useEffect(() => {
     loadParticipants();
@@ -596,7 +614,7 @@ export default function GroupParticipants({ groupId, onUpdate, eventData }: Grou
         ) : (
           <div className="space-y-4">
             {filteredParticipants.map((participant) => (
-              <div key={participant.id} className="border rounded-lg p-4 hover:bg-gray-50 transition-colors">
+              <div key={participant.id} className="border rounded-lg p-4 hover:bg-muted/50 transition-colors">
                 <div className="space-y-4">
                   {/* Header com avatar e nome */}
                   <div className="flex items-start gap-3">
@@ -667,7 +685,7 @@ export default function GroupParticipants({ groupId, onUpdate, eventData }: Grou
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => setSelectedParticipant(participant)}
+                      onClick={() => openParticipantDetails(participant)}
                       className="w-full sm:w-auto"
                     >
                       <Eye className="w-4 h-4 mr-1" />
@@ -750,9 +768,9 @@ export default function GroupParticipants({ groupId, onUpdate, eventData }: Grou
                           <Badge variant="secondary">Pendente</Badge>
                         )}
                       </div>
-                      <div className="mt-2 p-2 bg-blue-50 rounded-lg">
-                        <p className="text-xs text-blue-700 font-medium mb-1">Como o status é calculado:</p>
-                        <ul className="text-xs text-blue-600 space-y-1">
+                      <div className="mt-2 p-2 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                        <p className="text-xs text-blue-700 dark:text-blue-300 font-medium mb-1">Como o status é calculado:</p>
+                        <ul className="text-xs text-blue-600 dark:text-blue-400 space-y-1">
                           <li>• <strong>Confirmado:</strong> Pelo menos uma parcela foi paga OU pagamento à vista confirmado</li>
                           <li>• <strong>Pendente:</strong> Nenhum pagamento foi confirmado ainda</li>
                         </ul>
@@ -762,9 +780,9 @@ export default function GroupParticipants({ groupId, onUpdate, eventData }: Grou
                       <label className="text-sm font-medium text-gray-500">Status do Pagamento</label>
                       <div className="mt-1">{getPaymentBadge(calculateRegistrationStatus(selectedParticipant))}</div>
                       {selectedParticipant.installments && selectedParticipant.installments.length > 0 && (
-                        <div className="mt-2 p-2 bg-blue-50 rounded-lg">
-                          <p className="text-xs text-blue-700 font-medium mb-1">Como o status é calculado:</p>
-                          <ul className="text-xs text-blue-600 space-y-1">
+                        <div className="mt-2 p-2 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                          <p className="text-xs text-blue-700 dark:text-blue-300 font-medium mb-1">Como o status é calculado:</p>
+                          <ul className="text-xs text-blue-600 dark:text-blue-400 space-y-1">
                             <li>• <strong>Pago:</strong> Todas as parcelas foram pagas</li>
                             <li>• <strong>Em Atraso:</strong> Existe pelo menos uma parcela em atraso</li>
                             <li>• <strong>Em Processo:</strong> Algumas parcelas foram pagas</li>
@@ -858,10 +876,10 @@ export default function GroupParticipants({ groupId, onUpdate, eventData }: Grou
                                   <div 
                                     key={installment.id}
                                     className={`p-4 rounded-lg border-l-4 ${
-                                      isPaid ? 'bg-green-50 border-green-400' :
-                                      installment.status === 'overdue' ? 'bg-red-50 border-red-400' :
-                                      isNextToPay ? 'bg-blue-50 border-blue-400' :
-                                      'bg-gray-50 border-gray-300'
+                                      isPaid ? 'bg-green-50 dark:bg-green-900/20 border-green-400' :
+                                      installment.status === 'overdue' ? 'bg-red-50 dark:bg-red-900/20 border-red-400' :
+                                      isNextToPay ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-400' :
+                                      'bg-muted/50 border-muted-foreground'
                                     }`}
                                   >
                                     <div className="flex items-center justify-between mb-3">
@@ -976,8 +994,8 @@ export default function GroupParticipants({ groupId, onUpdate, eventData }: Grou
           {selectedInstallment && (
             <div className="space-y-4">
               {/* Informações da Parcela */}
-              <div className="bg-gray-50 rounded-lg p-4">
-                <h3 className="font-semibold mb-2">Informações da Parcela</h3>
+              <div className="bg-muted/50 rounded-lg p-4">
+                <h3 className="font-semibold mb-2 text-foreground">Informações da Parcela</h3>
                 <div className="space-y-1 text-sm">
                   <p><strong>Participante:</strong> {selectedParticipant?.firstName} {selectedParticipant?.lastName}</p>
                   <p><strong>Valor:</strong> R$ {Number(selectedInstallment.amount || 0).toFixed(2)}</p>
@@ -1014,12 +1032,12 @@ export default function GroupParticipants({ groupId, onUpdate, eventData }: Grou
               </div>
               
               {/* PIX Copia e Cola */}
-              <div className="bg-blue-50 rounded-lg p-3">
-                <p className="text-sm font-medium text-blue-800 mb-1">PIX Copia e Cola:</p>
-                <div className="bg-white p-2 rounded border font-mono text-xs break-all">
+              <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-3">
+                <p className="text-sm font-medium text-blue-800 dark:text-blue-200 mb-1">PIX Copia e Cola:</p>
+                <div className="bg-background p-2 rounded border font-mono text-xs break-all">
                   {selectedInstallment.pixCode}
                 </div>
-                <p className="text-xs text-blue-600 mt-2">
+                <p className="text-xs text-blue-600 dark:text-blue-400 mt-2">
                   Identificador: {selectedInstallment.pixIdentifier}
                 </p>
               </div>
@@ -1063,18 +1081,18 @@ export default function GroupParticipants({ groupId, onUpdate, eventData }: Grou
           
           {installmentToConfirm && (
             <div className="space-y-4">
-              <div className="bg-blue-50 rounded-lg p-4">
-                <h4 className="font-medium text-blue-900 mb-2">Detalhes da Parcela</h4>
-                <div className="space-y-1 text-sm text-blue-800">
+              <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4">
+                <h4 className="font-medium text-blue-900 dark:text-blue-200 mb-2">Detalhes da Parcela</h4>
+                <div className="space-y-1 text-sm text-blue-800 dark:text-blue-300">
                   <p><strong>Parcela:</strong> {installmentToConfirm.installmentNumber}</p>
                   <p><strong>Valor:</strong> R$ {Number(installmentToConfirm.amount || 0).toFixed(2)}</p>
                   <p><strong>Vencimento:</strong> {new Date(installmentToConfirm.dueDate).toLocaleDateString('pt-BR')}</p>
                 </div>
               </div>
               
-              <div className="bg-yellow-50 rounded-lg p-4">
-                <h4 className="font-medium text-yellow-900 mb-2">⚠️ Confirmação Necessária</h4>
-                <p className="text-sm text-yellow-800">
+              <div className="bg-yellow-50 dark:bg-yellow-900/20 rounded-lg p-4">
+                <h4 className="font-medium text-yellow-900 dark:text-yellow-200 mb-2">⚠️ Confirmação Necessária</h4>
+                <p className="text-sm text-yellow-800 dark:text-yellow-300">
                   Você recebeu o comprovante de pagamento desta parcela do participante? 
                   Confirme apenas após verificar o comprovante.
                 </p>
