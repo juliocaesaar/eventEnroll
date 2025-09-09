@@ -12,12 +12,29 @@ export async function apiRequest(
   url: string,
   data?: unknown | undefined,
 ): Promise<Response> {
+  // Importar AuthManager dinamicamente para evitar dependência circular
+  const { authManager } = await import('../hooks/authManager');
+  const headers = authManager.getAuthHeaders();
+  
+  console.log('🔍 API Request Debug:', { method, url, token: headers.Authorization ? 'present' : 'missing' });
+  
+  if (data) {
+    headers["Content-Type"] = "application/json";
+  }
+  
+  if (headers.Authorization) {
+    console.log('🔑 Authorization header set:', headers.Authorization.substring(0, 20) + '...');
+  } else {
+    console.log('❌ No token found');
+  }
+
   const res = await fetch(url, {
     method,
-    headers: data ? { "Content-Type": "application/json" } : {},
+    headers,
     body: data ? JSON.stringify(data) : undefined,
-    credentials: "include",
   });
+
+  console.log('📡 Response status:', res.status, res.statusText);
 
   await throwIfResNotOk(res);
   return res;
@@ -29,8 +46,15 @@ export const getQueryFn: <T>(options: {
 }) => QueryFunction<T> =
   ({ on401: unauthorizedBehavior }) =>
   async ({ queryKey }) => {
+    const token = localStorage.getItem('eventflow_token');
+    const headers: Record<string, string> = {};
+    
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
     const res = await fetch(queryKey.join("/") as string, {
-      credentials: "include",
+      headers,
     });
 
     if (unauthorizedBehavior === "returnNull" && res.status === 401) {
@@ -49,6 +73,8 @@ export const queryClient = new QueryClient({
       refetchOnWindowFocus: false,
       staleTime: Infinity,
       retry: false,
+      // Evitar limpeza automática do cache
+      gcTime: Infinity,
     },
     mutations: {
       retry: false,

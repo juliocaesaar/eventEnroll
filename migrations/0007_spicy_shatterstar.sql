@@ -1,0 +1,1 @@
+ALTER TABLE "events" ADD COLUMN "pix_installments" integer DEFAULT 12;

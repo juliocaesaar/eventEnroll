@@ -4,22 +4,58 @@ import { Link, useLocation } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { isUnauthorizedError } from "@/lib/authUtils";
-import { Calendar, Users, CreditCard, BarChart3, Bell, Plus, Dice2, ChevronDown } from "lucide-react";
+import { Calendar, Users, CreditCard, BarChart3, Dice2, Plus, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
 import StatsCard from "@/components/ui/stats-card";
 import EventCard from "@/components/ui/event-card";
 import TemplateCard from "@/components/ui/template-card";
 import AnalyticsChart from "@/components/ui/analytics-chart";
-import PaymentMethods from "@/components/ui/payment-methods";
-import MobileNav from "@/components/ui/mobile-nav";
+import Layout from "@/components/layout/Layout";
+import { useGlobalNotifications } from "@/hooks/useGlobalNotifications";
+import { usePusher } from "@/hooks/usePusher";
 
 export default function Dashboard() {
   const { user, isLoading: authLoading } = useAuth();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
+  const { isConnected } = usePusher();
+  const { addNotification } = useGlobalNotifications();
+
+  // Função para testar Pusher
+  const testPusher = async () => {
+    try {
+      const response = await fetch('/api/pusher/test', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+      });
+      
+      const result = await response.json();
+      
+      if (result.success) {
+        toast({
+          title: "Teste Enviado! 🧪",
+          description: "Notificação de teste enviada via Pusher",
+        });
+      } else {
+        toast({
+          title: "Erro no Teste",
+          description: result.message || "Erro ao enviar teste",
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
+      console.error('Erro ao testar Pusher:', error);
+      toast({
+        title: "Erro no Teste",
+        description: "Erro ao conectar com o servidor",
+        variant: "destructive"
+      });
+    }
+  };
 
   // Redirect if not authenticated
   useEffect(() => {
@@ -70,74 +106,29 @@ export default function Dashboard() {
     );
   }
 
-  const firstName = user?.firstName || user?.email?.split('@')[0] || 'Usuário';
+  const firstName = (user as any)?.firstName || (user as any)?.email?.split('@')[0] || 'Usuário';
   const recentEvents = Array.isArray(events) ? events.slice(0, 3) : [];
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white border-b border-gray-200 sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            {/* Logo and Brand */}
-            <div className="flex items-center space-x-4">
-              <div className="flex items-center space-x-2">
-                <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-                  <Calendar className="w-4 h-4 text-white" />
-                </div>
-                <span className="text-xl font-bold text-gray-900">EventFlow</span>
-              </div>
-            </div>
-
-            {/* Navigation */}
-            <nav className="hidden md:flex items-center space-x-8">
-              <Link href="/" className="text-primary font-medium border-b-2 border-primary pb-1">
-                Dashboard
-              </Link>
-              <Link href="/events" className="text-gray-600 hover:text-gray-900 font-medium">
-                Eventos
-              </Link>
-              <button className="text-gray-600 hover:text-gray-900 font-medium">
-                Templates
-              </button>
-              <button className="text-gray-600 hover:text-gray-900 font-medium">
-                Analytics
-              </button>
-            </nav>
-
-            {/* User Menu */}
-            <div className="flex items-center space-x-4">
-              <Button variant="ghost" size="sm" className="relative" data-testid="button-notifications">
-                <Bell className="w-4 h-4" />
-                <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full text-xs text-white flex items-center justify-center">
-                  3
-                </span>
-              </Button>
-              <div className="flex items-center space-x-2 cursor-pointer">
-                <Avatar className="w-8 h-8" data-testid="avatar-user">
-                  <AvatarImage src={user?.profileImageUrl || ''} alt={firstName} />
-                  <AvatarFallback>{firstName.charAt(0).toUpperCase()}</AvatarFallback>
-                </Avatar>
-                <span className="hidden md:block text-sm font-medium text-gray-700" data-testid="text-username">
-                  {firstName}
-                </span>
-                <ChevronDown className="w-3 h-3 text-gray-500" />
-              </div>
-            </div>
-          </div>
-        </div>
-      </header>
-
-      {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <Layout currentPage="dashboard">
         
         {/* Dashboard Header */}
         <div className="mb-8">
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between">
             <div className="mb-6 lg:mb-0">
-              <h1 className="text-2xl font-bold text-gray-900" data-testid="text-welcome">
-                Bem-vindo de volta, {firstName}!
-              </h1>
+              <div className="flex items-center space-x-3 mb-2">
+                <h1 className="text-2xl font-bold text-gray-900" data-testid="text-welcome">
+                  Bem-vindo de volta, {firstName}!
+                </h1>
+                
+                {/* Status da conexão Pusher */}
+                <div className="flex items-center space-x-1 bg-gray-50 px-2 py-1 rounded-md">
+                  <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`}></div>
+                  <span className="text-xs text-gray-600">
+                    {isConnected ? 'Tempo Real' : 'Offline'}
+                  </span>
+                </div>
+              </div>
               <p className="text-gray-600 mt-1">Gerencie seus eventos e acompanhe o desempenho em tempo real</p>
             </div>
             <div className="flex flex-col sm:flex-row gap-3">
@@ -149,13 +140,17 @@ export default function Dashboard() {
                 <Plus className="w-4 h-4 mr-2" />
                 Criar Evento
               </Button>
-              <Button 
-                onClick={() => setLocation('/editor')}
-                data-testid="button-quick-editor"
-              >
-                <Dice2 className="w-4 h-4 mr-2" />
-                Editor Rápido
-              </Button>
+              {user?.role === 'admin' && (
+                <Button 
+                  variant="outline"
+                  onClick={() => setLocation('/pix-test')}
+                  className="border-orange-200 text-orange-700 hover:bg-orange-50"
+                  title="Testar integração PIX"
+                >
+                  <Zap className="w-4 h-4 mr-2" />
+                  Teste PIX
+                </Button>
+              )}
             </div>
           </div>
         </div>
@@ -279,9 +274,6 @@ export default function Dashboard() {
             {/* Analytics Chart */}
             <AnalyticsChart />
 
-            {/* Payment Methods */}
-            <PaymentMethods />
-
             {/* Quick Actions */}
             <Card data-testid="card-quick-actions">
               <CardHeader className="border-b">
@@ -334,11 +326,6 @@ export default function Dashboard() {
 
           </div>
         </div>
-
-      </main>
-
-      {/* Mobile Bottom Navigation */}
-      <MobileNav />
-    </div>
+    </Layout>
   );
 }

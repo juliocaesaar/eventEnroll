@@ -5,16 +5,17 @@ export default function MobileNav() {
   const [location] = useLocation();
 
   const navItems = [
-    { href: "/", label: "Dashboard", icon: Home, testId: "nav-dashboard" },
+    { href: "/dashboard", label: "Dashboard", icon: Home, testId: "nav-dashboard" },
     { href: "/events", label: "Eventos", icon: Calendar, testId: "nav-events" },
     { href: "/editor", label: "Criar", icon: Plus, testId: "nav-create" },
-    { href: "/analytics", label: "Analytics", icon: BarChart3, testId: "nav-analytics" },
+    // Temporariamente desabilitado
+    // { href: "/analytics", label: "Analytics", icon: BarChart3, testId: "nav-analytics" },
     { href: "/profile", label: "Perfil", icon: User, testId: "nav-profile" },
   ];
 
   const isActive = (href: string) => {
-    if (href === '/') {
-      return location === '/';
+    if (href === '/dashboard') {
+      return location === '/dashboard' || location === '/';
     }
     return location.startsWith(href);
   };

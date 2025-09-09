@@ -16,7 +16,7 @@ export default function Landing() {
           </div>
           
           <Button 
-            onClick={() => window.location.href = '/api/login'}
+            onClick={() => window.location.href = '/login'}
             data-testid="button-login"
           >
             Entrar na Plataforma
@@ -42,7 +42,7 @@ export default function Landing() {
               <Button 
                 size="lg" 
                 className="text-lg px-8 py-4 bg-gradient-to-r from-primary to-secondary hover:from-primary-600 hover:to-secondary-600 text-white font-semibold shadow-lg"
-                onClick={() => window.location.href = '/api/login'}
+                onClick={() => window.location.href = '/register'}
                 data-testid="button-start-free"
               >
                 🚀 Teste Grátis por 14 Dias
@@ -257,7 +257,7 @@ export default function Landing() {
               size="lg" 
               variant="secondary" 
               className="text-lg px-8 py-4"
-              onClick={() => window.location.href = '/api/login'}
+              onClick={() => window.location.href = '/register'}
               data-testid="button-cta-start"
             >
               🚀 Teste Grátis 14 Dias

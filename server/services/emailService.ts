@@ -1,271 +1,283 @@
-import { MailService } from '@sendgrid/mail';
+import { resend, EMAIL_CONFIG } from '../config/resend';
 
-class EmailService {
-  private mailService: MailService | null = null;
-  private isConfigured = false;
+export interface EmailTemplate {
+  to: string;
+  subject: string;
+  html: string;
+  from?: string;
+}
 
-  constructor() {
-    this.initialize();
-  }
+export class EmailService {
+  private static readonly FROM_EMAIL = EMAIL_CONFIG.from;
 
-  private initialize() {
-    if (process.env.SENDGRID_API_KEY) {
-      this.mailService = new MailService();
-      this.mailService.setApiKey(process.env.SENDGRID_API_KEY);
-      this.isConfigured = true;
-      console.log('📧 SendGrid configured successfully');
-    } else {
-      console.log('⚠️ SendGrid not configured - emails will be logged to console');
-    }
-  }
-
-  async sendRegistrationConfirmation(to: string, data: {
-    eventTitle: string;
-    eventDate: string;
-    attendeeName: string;
-    ticketType: string;
-    qrCode?: string;
-    eventSlug: string;
-  }) {
-    const subject = `Confirmação de Inscrição - ${data.eventTitle}`;
-    const html = this.generateRegistrationConfirmationHTML(data);
-    
-    return this.sendEmail(to, subject, html);
-  }
-
-  async sendPaymentReceived(to: string, data: {
-    eventTitle: string;
-    attendeeName: string;
+  /**
+   * Enviar email de notificação de parcela vencida
+   */
+  static async sendInstallmentReminder(data: {
+    to: string;
+    participantName: string;
+    eventName: string;
+    installmentNumber: number;
+    totalInstallments: number;
     amount: number;
-    paymentId: string;
+    dueDate: string;
+    paymentUrl: string;
+    whatsappNumber?: string;
   }) {
-    const subject = `Pagamento Confirmado - ${data.eventTitle}`;
-    const html = this.generatePaymentConfirmationHTML(data);
+    const { to, participantName, eventName, installmentNumber, totalInstallments, amount, dueDate, paymentUrl, whatsappNumber } = data;
+
+    const subject = `EventFlow - Lembrete de Pagamento - ${eventName}`;
     
-    return this.sendEmail(to, subject, html);
-  }
-
-  async sendEventReminder(to: string, data: {
-    eventTitle: string;
-    eventDate: string;
-    attendeeName: string;
-    eventSlug: string;
-  }) {
-    const subject = `Lembrete: ${data.eventTitle} é amanhã!`;
-    const html = this.generateEventReminderHTML(data);
-    
-    return this.sendEmail(to, subject, html);
-  }
-
-  private async sendEmail(to: string, subject: string, html: string) {
-    if (!this.isConfigured || !this.mailService) {
-      console.log(`📧 [DEVELOPMENT] Email would be sent to: ${to}`);
-      console.log(`📧 [DEVELOPMENT] Subject: ${subject}`);
-      console.log(`📧 [DEVELOPMENT] Content preview: ${html.substring(0, 200)}...`);
-      return { success: true, message: 'Email logged in development mode' };
-    }
-
-    try {
-      await this.mailService.send({
-        to,
-        from: process.env.SENDGRID_FROM_EMAIL || 'noreply@eventflow.app',
-        subject,
-        html,
-      });
-      
-      console.log(`📧 Email sent successfully to ${to}`);
-      return { success: true, message: 'Email sent successfully' };
-    } catch (error) {
-      console.error('📧 SendGrid email error:', error);
-      return { success: false, message: 'Failed to send email', error };
-    }
-  }
-
-  private generateRegistrationConfirmationHTML(data: {
-    eventTitle: string;
-    eventDate: string;
-    attendeeName: string;
-    ticketType: string;
-    qrCode?: string;
-    eventSlug: string;
-  }) {
-    return `
+    const html = `
       <!DOCTYPE html>
       <html>
       <head>
         <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Lembrete de Pagamento</title>
+        <style>
+          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+          .header { background: #3b82f6; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0; }
+          .content { background: #f8fafc; padding: 30px; border-radius: 0 0 8px 8px; }
+          .amount { font-size: 24px; font-weight: bold; color: #059669; }
+          .due-date { color: #dc2626; font-weight: bold; }
+          .button { display: inline-block; background: #3b82f6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; margin: 10px 0; }
+          .whatsapp-button { background: #25d366; }
+          .footer { margin-top: 30px; padding-top: 20px; border-top: 1px solid #e5e7eb; font-size: 14px; color: #6b7280; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h1>EventFlow</h1>
+            <p>Lembrete de Pagamento</p>
+          </div>
+          
+          <div class="content">
+            <h2>Olá, ${participantName}!</h2>
+            
+            <p>Este é um lembrete sobre o pagamento da sua inscrição no evento <strong>${eventName}</strong>.</p>
+            
+            <div style="background: white; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #3b82f6;">
+              <h3>Detalhes da Parcela</h3>
+              <p><strong>Parcela:</strong> ${installmentNumber} de ${totalInstallments}</p>
+              <p><strong>Valor:</strong> <span class="amount">R$ ${amount.toFixed(2)}</span></p>
+              <p><strong>Vencimento:</strong> <span class="due-date">${new Date(dueDate).toLocaleDateString('pt-BR')}</span></p>
+            </div>
+            
+            <p>Para realizar o pagamento, clique no botão abaixo:</p>
+            <a href="${paymentUrl}" class="button">Pagar Agora</a>
+            
+            ${whatsappNumber ? `
+              <p>Ou entre em contato conosco via WhatsApp:</p>
+              <a href="https://wa.me/${whatsappNumber.replace(/\D/g, '')}" class="button whatsapp-button">Contatar via WhatsApp</a>
+            ` : ''}
+            
+            <div class="footer">
+              <p><strong>EventFlow</strong> - Sistema de Gestão de Eventos</p>
+              <p>Este é um email automático. Em caso de dúvidas, entre em contato com os organizadores do evento.</p>
+            </div>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+
+    try {
+      const result = await resend.emails.send({
+        from: this.FROM_EMAIL,
+        to,
+        subject,
+        html,
+      });
+
+      console.log('Email de lembrete enviado:', result);
+      return result;
+    } catch (error) {
+      console.error('Erro ao enviar email de lembrete:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Enviar email de confirmação de inscrição
+   */
+  static async sendRegistrationConfirmation(data: {
+    to: string;
+    participantName: string;
+    eventName: string;
+    totalAmount: number;
+    installmentPlan?: {
+      totalInstallments: number;
+      monthlyAmount: number;
+      firstDueDate: string;
+    };
+  }) {
+    const { to, participantName, eventName, totalAmount, installmentPlan } = data;
+
+    const subject = `EventFlow - Confirmação de Inscrição - ${eventName}`;
+    
+    const html = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>Confirmação de Inscrição</title>
         <style>
           body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
           .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-          .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; border-radius: 8px 8px 0 0; }
-          .content { background: white; padding: 30px; border: 1px solid #e1e5e9; }
-          .footer { background: #f8f9fa; padding: 20px; text-align: center; border-radius: 0 0 8px 8px; }
-          .ticket-info { background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0; }
-          .qr-code { text-align: center; margin: 20px 0; }
-          .button { display: inline-block; background: #667eea; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; margin: 20px 0; }
+          .header { background: #059669; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0; }
+          .content { background: #f8fafc; padding: 30px; border-radius: 0 0 8px 8px; }
+          .amount { font-size: 24px; font-weight: bold; color: #059669; }
+          .installment-info { background: white; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #3b82f6; }
+          .footer { margin-top: 30px; padding-top: 20px; border-top: 1px solid #e5e7eb; font-size: 14px; color: #6b7280; }
         </style>
       </head>
       <body>
         <div class="container">
           <div class="header">
-            <h1>🎉 Inscrição Confirmada!</h1>
-            <p>Seu ingresso para ${data.eventTitle}</p>
+            <h1>EventFlow</h1>
+            <p>Inscrição Confirmada!</p>
           </div>
           
           <div class="content">
-            <h2>Olá, ${data.attendeeName}!</h2>
-            <p>Sua inscrição foi confirmada com sucesso. Aqui estão os detalhes do seu evento:</p>
+            <h2>Parabéns, ${participantName}!</h2>
             
-            <div class="ticket-info">
-              <h3>📅 Detalhes do Evento</h3>
-              <p><strong>Evento:</strong> ${data.eventTitle}</p>
-              <p><strong>Data:</strong> ${data.eventDate}</p>
-              <p><strong>Tipo de Ingresso:</strong> ${data.ticketType}</p>
+            <p>Sua inscrição no evento <strong>${eventName}</strong> foi confirmada com sucesso!</p>
+            
+            <div style="background: white; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #059669;">
+              <h3>Detalhes da Inscrição</h3>
+              <p><strong>Evento:</strong> ${eventName}</p>
+              <p><strong>Valor Total:</strong> <span class="amount">R$ ${totalAmount.toFixed(2)}</span></p>
             </div>
             
-            ${data.qrCode ? `
-              <div class="qr-code">
-                <h3>🎫 Seu QR Code</h3>
-                <p>Apresente este código no evento:</p>
-                <div style="background: white; padding: 20px; border: 2px dashed #ccc; display: inline-block;">
-                  <strong>${data.qrCode}</strong>
-                </div>
+            ${installmentPlan ? `
+              <div class="installment-info">
+                <h3>Plano de Pagamento</h3>
+                <p><strong>Forma de Pagamento:</strong> Parcelamento em ${installmentPlan.totalInstallments} parcelas mensais</p>
+                <p><strong>Valor da Parcela:</strong> <span class="amount">R$ ${installmentPlan.monthlyAmount.toFixed(2)}</span></p>
+                <p><strong>Primeira Parcela:</strong> ${new Date(installmentPlan.firstDueDate).toLocaleDateString('pt-BR')}</p>
+                <p><em>Você receberá lembretes mensais sobre os vencimentos das parcelas.</em></p>
               </div>
             ` : ''}
             
-            <p>Guarde este email como comprovante. Você precisará dele para acessar o evento.</p>
-            
-            <div style="text-align: center;">
-              <a href="${process.env.FRONTEND_URL || 'http://localhost:5000'}/event/${data.eventSlug}" class="button">
-                Ver Detalhes do Evento
-              </a>
+            <div class="footer">
+              <p><strong>EventFlow</strong> - Sistema de Gestão de Eventos</p>
+              <p>Em caso de dúvidas, entre em contato com os organizadores do evento.</p>
             </div>
-          </div>
-          
-          <div class="footer">
-            <p>Este email foi enviado automaticamente pelo EventFlow.</p>
-            <p>Se você tem dúvidas, entre em contato conosco.</p>
           </div>
         </div>
       </body>
       </html>
     `;
+
+    try {
+      const result = await resend.emails.send({
+        from: this.FROM_EMAIL,
+        to,
+        subject,
+        html,
+      });
+
+      console.log('Email de confirmação enviado:', result);
+      return result;
+    } catch (error) {
+      console.error('Erro ao enviar email de confirmação:', error);
+      throw error;
+    }
   }
 
-  private generatePaymentConfirmationHTML(data: {
-    eventTitle: string;
-    attendeeName: string;
+  /**
+   * Enviar email de cobrança de parcela em atraso
+   */
+  static async sendOverdueNotification(data: {
+    to: string;
+    participantName: string;
+    eventName: string;
+    installmentNumber: number;
     amount: number;
-    paymentId: string;
+    daysOverdue: number;
+    lateFee: number;
+    paymentUrl: string;
+    whatsappNumber?: string;
   }) {
-    return `
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <meta charset="utf-8">
-        <title>Pagamento Confirmado</title>
-        <style>
-          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-          .header { background: linear-gradient(135deg, #28a745 0%, #20c997 100%); color: white; padding: 30px; text-align: center; border-radius: 8px 8px 0 0; }
-          .content { background: white; padding: 30px; border: 1px solid #e1e5e9; }
-          .footer { background: #f8f9fa; padding: 20px; text-align: center; border-radius: 0 0 8px 8px; }
-          .payment-info { background: #d4edda; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #28a745; }
-        </style>
-      </head>
-      <body>
-        <div class="container">
-          <div class="header">
-            <h1>✅ Pagamento Confirmado!</h1>
-            <p>Seu pagamento para ${data.eventTitle} foi processado</p>
-          </div>
-          
-          <div class="content">
-            <h2>Olá, ${data.attendeeName}!</h2>
-            <p>Recebemos seu pagamento com sucesso. Sua inscrição está agora confirmada!</p>
-            
-            <div class="payment-info">
-              <h3>💳 Detalhes do Pagamento</h3>
-              <p><strong>Valor Pago:</strong> R$ ${data.amount.toFixed(2)}</p>
-              <p><strong>ID do Pagamento:</strong> ${data.paymentId}</p>
-              <p><strong>Status:</strong> Confirmado</p>
-            </div>
-            
-            <p>Você receberá em breve um email com todos os detalhes do evento e seu QR Code de acesso.</p>
-          </div>
-          
-          <div class="footer">
-            <p>Obrigado por escolher o EventFlow!</p>
-          </div>
-        </div>
-      </body>
-      </html>
-    `;
-  }
+    const { to, participantName, eventName, installmentNumber, amount, daysOverdue, lateFee, paymentUrl, whatsappNumber } = data;
 
-  private generateEventReminderHTML(data: {
-    eventTitle: string;
-    eventDate: string;
-    attendeeName: string;
-    eventSlug: string;
-  }) {
-    return `
+    const subject = `EventFlow - Parcela em Atraso - ${eventName}`;
+    
+    const html = `
       <!DOCTYPE html>
       <html>
       <head>
         <meta charset="utf-8">
-        <title>Lembrete do Evento</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Parcela em Atraso</title>
         <style>
           body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
           .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-          .header { background: linear-gradient(135deg, #ffc107 0%, #fd7e14 100%); color: white; padding: 30px; text-align: center; border-radius: 8px 8px 0 0; }
-          .content { background: white; padding: 30px; border: 1px solid #e1e5e9; }
-          .footer { background: #f8f9fa; padding: 20px; text-align: center; border-radius: 0 0 8px 8px; }
-          .reminder-info { background: #fff3cd; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #ffc107; }
-          .button { display: inline-block; background: #fd7e14; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; margin: 20px 0; }
+          .header { background: #dc2626; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0; }
+          .content { background: #f8fafc; padding: 30px; border-radius: 0 0 8px 8px; }
+          .amount { font-size: 24px; font-weight: bold; color: #dc2626; }
+          .overdue-info { background: #fef2f2; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #dc2626; }
+          .button { display: inline-block; background: #dc2626; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; margin: 10px 0; }
+          .whatsapp-button { background: #25d366; }
+          .footer { margin-top: 30px; padding-top: 20px; border-top: 1px solid #e5e7eb; font-size: 14px; color: #6b7280; }
         </style>
       </head>
       <body>
         <div class="container">
           <div class="header">
-            <h1>⏰ Lembrete do Evento</h1>
-            <p>${data.eventTitle} é amanhã!</p>
+            <h1>EventFlow</h1>
+            <p>Parcela em Atraso</p>
           </div>
           
           <div class="content">
-            <h2>Olá, ${data.attendeeName}!</h2>
-            <p>Estamos ansiosos para vê-lo no evento que acontece amanhã!</p>
+            <h2>Olá, ${participantName}!</h2>
             
-            <div class="reminder-info">
-              <h3>📅 Detalhes do Evento</h3>
-              <p><strong>Evento:</strong> ${data.eventTitle}</p>
-              <p><strong>Data/Hora:</strong> ${data.eventDate}</p>
+            <p>Identificamos que a parcela ${installmentNumber} do evento <strong>${eventName}</strong> está em atraso.</p>
+            
+            <div class="overdue-info">
+              <h3>Detalhes da Parcela em Atraso</h3>
+              <p><strong>Parcela:</strong> ${installmentNumber}</p>
+              <p><strong>Valor Original:</strong> R$ ${amount.toFixed(2)}</p>
+              <p><strong>Multa por Atraso:</strong> R$ ${lateFee.toFixed(2)}</p>
+              <p><strong>Valor Total:</strong> <span class="amount">R$ ${(amount + lateFee).toFixed(2)}</span></p>
+              <p><strong>Dias em Atraso:</strong> ${daysOverdue} dias</p>
             </div>
             
-            <p>Não se esqueça de:</p>
-            <ul>
-              <li>Trazer seu QR Code (neste email ou no celular)</li>
-              <li>Chegar 15 minutos antes do início</li>
-              <li>Trazer um documento de identificação</li>
-            </ul>
+            <p>Para regularizar sua situação, clique no botão abaixo:</p>
+            <a href="${paymentUrl}" class="button">Pagar Agora</a>
             
-            <div style="text-align: center;">
-              <a href="${process.env.FRONTEND_URL || 'http://localhost:5000'}/event/${data.eventSlug}" class="button">
-                Ver Detalhes do Evento
-              </a>
+            ${whatsappNumber ? `
+              <p>Ou entre em contato conosco via WhatsApp:</p>
+              <a href="https://wa.me/${whatsappNumber.replace(/\D/g, '')}" class="button whatsapp-button">Contatar via WhatsApp</a>
+            ` : ''}
+            
+            <div class="footer">
+              <p><strong>EventFlow</strong> - Sistema de Gestão de Eventos</p>
+              <p>Este é um email automático. Em caso de dúvidas, entre em contato com os organizadores do evento.</p>
             </div>
-          </div>
-          
-          <div class="footer">
-            <p>Nos vemos em breve!</p>
-            <p>Equipe EventFlow</p>
           </div>
         </div>
       </body>
       </html>
     `;
+
+    try {
+      const result = await resend.emails.send({
+        from: this.FROM_EMAIL,
+        to,
+        subject,
+        html,
+      });
+
+      console.log('Email de cobrança enviado:', result);
+      return result;
+    } catch (error) {
+      console.error('Erro ao enviar email de cobrança:', error);
+      throw error;
+    }
   }
 }
-
-export const emailService = new EmailService();

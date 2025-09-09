@@ -2,6 +2,22 @@ export async function seedInitialData(): Promise<void> {
   try {
     const { storage } = await import("../storage");
     
+    // Create admin user if not exists
+    try {
+      await storage.getUser("admin-user-123");
+    } catch (error) {
+      // User doesn't exist, create it
+      await storage.createUser({
+        id: "admin-user-123",
+        email: "admin@eventflow.com",
+        firstName: "Admin",
+        lastName: "User",
+        role: "admin",
+        passwordHash: "$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi" // password: password
+      });
+      console.log('Created admin user');
+    }
+    
     const existingCategories = await storage.getEventCategories();
     if (existingCategories.length === 0) {
       // Create default categories
@@ -86,7 +102,7 @@ export async function seedInitialData(): Promise<void> {
     }
 
     // Create a sample event if none exists
-    const existingEvents = await storage.getUserEvents("default-user-123"); // Use the user we created earlier
+    const existingEvents = await storage.getUserEvents("admin-user-123"); // Use the user we created earlier
     if (existingEvents.length === 0) {
       const sampleEvent = await storage.createEvent({
         title: "Acampamento Next Level 2024",
@@ -94,7 +110,7 @@ export async function seedInitialData(): Promise<void> {
         startDate: new Date("2024-09-15T09:00:00Z"),
         endDate: new Date("2024-09-17T18:00:00Z"),
         capacity: 100,
-        organizerId: "default-user-123", // Use the correct user ID
+        organizerId: "admin-user-123", // Use the correct user ID
         categoryId: "religious",
         status: "published",
         slug: "acamp-next-level",
@@ -114,7 +130,9 @@ export async function seedInitialData(): Promise<void> {
         description: "Inclui hospedagem, todas as refeições e materiais",
         price: "299.90",
         quantity: 80,
-        maxPerOrder: 2
+        maxPerOrder: 2,
+        salesStart: new Date(), // Iniciar vendas imediatamente
+        salesEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) // 30 dias a partir de agora
       });
 
       await storage.createTicket({
@@ -123,7 +141,9 @@ export async function seedInitialData(): Promise<void> {
         description: "Para quem vem acompanhado! Desconto especial para 2 pessoas",
         price: "499.90",
         quantity: 20,
-        maxPerOrder: 1
+        maxPerOrder: 1,
+        salesStart: new Date(), // Iniciar vendas imediatamente
+        salesEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) // 30 dias a partir de agora
       });
 
       console.log('Created sample event with tickets');

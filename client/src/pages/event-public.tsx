@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
-import { useQuery, useMutation } from "@tanstack/react-query";
-import { useParams } from "wouter";
+import { useQuery } from "@tanstack/react-query";
+import { useParams, useLocation } from "wouter";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Calendar, MapPin, Clock, Users, CreditCard, Ticket } from "lucide-react";
@@ -10,16 +10,23 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { EventHeader } from "@/components/event-site/EventHeader";
+import { EventFooter } from "@/components/event-site/EventFooter";
+import { EventCarousel } from "@/components/event-site/EventCarousel";
+import { EventSections } from "@/components/event-site/EventSections";
 
 export default function EventPublic() {
   const params = useParams<{ slug: string }>();
+  const [, setLocation] = useLocation();
   const { toast } = useToast();
-  const [selectedTickets, setSelectedTickets] = useState<Record<string, number>>({});
+  const [selectedTicket, setSelectedTicket] = useState<string>('');
+  const [ticketQuantity, setTicketQuantity] = useState<number>(1);
+  const [paymentType, setPaymentType] = useState<'installments' | 'cash'>('installments');
   const [registrationData, setRegistrationData] = useState({
     name: '',
     email: '',
     phone: '',
-    document: '',
+    groupId: '',
   });
 
   // Fetch event by slug
@@ -33,53 +40,53 @@ export default function EventPublic() {
     enabled: !!event,
   });
 
-  // Registration mutation
-  const registerMutation = useMutation({
-    mutationFn: async (data: any) => {
-      const response = await apiRequest('POST', `/api/public/events/${params.slug}/register`, data);
-      return response.json(); // Parse the response JSON
-    },
-    onSuccess: (response: any) => {
-      if (response.success) {
-        // Store registration data in localStorage for confirmation page
-        localStorage.setItem(`registration_${response.paymentId}`, JSON.stringify(response));
-        
-        // Redirect to confirmation page
-        const confirmationUrl = `/registration/confirmation?id=${response.paymentId}&eventSlug=${params.slug}`;
-        window.location.href = confirmationUrl;
-      } else {
-        toast({
-          title: "Erro na inscrição",
-          description: "Tente novamente em alguns instantes.",
-          variant: "destructive"
-        });
-      }
-    },
-    onError: (error: any) => {
-      toast({
-        title: "Erro na inscrição",
-        description: error.message,
-        variant: "destructive",
-      });
-    },
-  });
+  // Fetch groups for the event
+  const { data: groups = [] } = useQuery({
+    queryKey: [`/api/events/${(event as any)?.id}/groups`],
+    enabled: !!event,
+  }) as { data: any[] };
 
-  const handleTicketChange = (ticketId: string, quantity: number) => {
-    setSelectedTickets(prev => ({
-      ...prev,
-      [ticketId]: quantity
-    }));
+
+  const getSelectedTicketPrice = () => {
+    if (!selectedTicket) return 0;
+    const ticket = (tickets as any[]).find((t: any) => t.id === selectedTicket);
+    if (!ticket) return 0;
+    
+    const basePrice = parseFloat(ticket.price || 0) * ticketQuantity;
+    
+    // Aplicar desconto de R$ 20,00 se for pagamento à vista
+    if (paymentType === 'cash') {
+      return Math.max(0, basePrice - 20); // Não permitir valor negativo
+    }
+    
+    return basePrice;
   };
 
-  const calculateTotal = () => {
-    let total = 0;
-    Object.entries(selectedTickets).forEach(([ticketId, quantity]) => {
-      const ticket = (tickets as any[]).find((t: any) => t.id === ticketId);
-      if (ticket) {
-        total += parseFloat(ticket.price || 0) * quantity;
-      }
+  const getSelectedTicket = () => {
+    if (!selectedTicket) return null;
+    return (tickets as any[]).find((t: any) => t.id === selectedTicket);
+  };
+
+  const handleTicketChange = (ticketId: string) => {
+    setSelectedTicket(ticketId);
+    setTicketQuantity(1); // Reset quantity when ticket changes
+  };
+
+  const isTicketExpired = (ticket: any) => {
+    if (!ticket.salesEnd) return false;
+    return new Date(ticket.salesEnd) < new Date();
+  };
+
+  const formatTicketExpiration = (ticket: any) => {
+    if (!ticket.salesEnd) return null;
+    const endDate = new Date(ticket.salesEnd);
+    return endDate.toLocaleDateString('pt-BR', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
     });
-    return total;
   };
 
   const handleRegister = () => {
@@ -92,23 +99,39 @@ export default function EventPublic() {
       return;
     }
 
-    const selectedTicketsList = Object.entries(selectedTickets)
-      .filter(([, quantity]) => quantity > 0)
-      .map(([ticketId, quantity]) => ({ ticketId, quantity }));
-
-    if (selectedTicketsList.length === 0) {
+    if (!selectedTicket) {
       toast({
-        title: "Selecione ingressos",
-        description: "Por favor, selecione pelo menos um ingresso.",
+        title: "Selecione um ingresso",
+        description: "Por favor, selecione um ingresso.",
         variant: "destructive",
       });
       return;
     }
 
-    registerMutation.mutate({
+    // Verificar se o ingresso selecionado não está expirado
+    const selectedTicketData = (tickets as any[]).find((t: any) => t.id === selectedTicket);
+    if (selectedTicketData && isTicketExpired(selectedTicketData)) {
+      toast({
+        title: "Ingresso indisponível",
+        description: "Este ingresso não está mais disponível para venda.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Preparar dados da inscrição
+    const registrationPayload = {
       ...registrationData,
-      tickets: selectedTicketsList,
-    });
+      groupId: registrationData.groupId === 'none' ? '' : registrationData.groupId,
+      tickets: [{ ticketId: selectedTicket, quantity: ticketQuantity }],
+      paymentType: paymentType,
+    };
+
+    // Salvar dados no localStorage para a página de termos
+    localStorage.setItem('pendingRegistration', JSON.stringify(registrationPayload));
+
+    // Redirecionar para página de termos
+    setLocation(`/registration/terms/${params.slug}`);
   };
 
   const formatDate = (dateString: string) => {
@@ -146,60 +169,40 @@ export default function EventPublic() {
 
   const eventData = event as any;
 
+  // Preparar dados para o carrossel
+  const carouselSlides = [
+    {
+      id: '1',
+      title: eventData.title,
+      subtitle: 'Não perca esta oportunidade única!',
+      description: eventData.description,
+      image: eventData.imageUrl || 'https://images.unsplash.com/photo-1505373877841-8d25f7d46678?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80',
+      ctaText: 'Inscrever-se Agora',
+      ctaAction: () => {
+        document.getElementById('registration-section')?.scrollIntoView({ behavior: 'smooth' });
+      }
+    }
+  ];
+
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Hero Section */}
-      <div className="bg-white">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-          <div className="text-center">
-            <Badge className="mb-4">{eventData.category?.name}</Badge>
-            <h1 className="text-4xl font-bold text-gray-900 mb-6" data-testid="text-event-title">
-              {eventData.title}
-            </h1>
-            <p className="text-xl text-gray-600 mb-8" data-testid="text-event-description">
-              {eventData.description}
-            </p>
-            
-            <div className="grid md:grid-cols-3 gap-6 max-w-2xl mx-auto">
-              <div className="flex items-center justify-center space-x-2">
-                <Calendar className="w-5 h-5 text-primary" />
-                <div className="text-sm">
-                  <div className="font-medium">Início</div>
-                  <div className="text-gray-600">{formatDate(eventData.startDate)}</div>
-                </div>
-              </div>
-              
-              {eventData.endDate && (
-                <div className="flex items-center justify-center space-x-2">
-                  <Clock className="w-5 h-5 text-primary" />
-                  <div className="text-sm">
-                    <div className="font-medium">Fim</div>
-                    <div className="text-gray-600">{formatDate(eventData.endDate)}</div>
-                  </div>
-                </div>
-              )}
-              
-              <div className="flex items-center justify-center space-x-2">
-                <Users className="w-5 h-5 text-primary" />
-                <div className="text-sm">
-                  <div className="font-medium">Capacidade</div>
-                  <div className="text-gray-600">{eventData.capacity} pessoas</div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+      {/* Carrossel */}
+      <EventCarousel slides={carouselSlides} />
+      
+      {/* Header com informações do evento */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <EventHeader event={eventData} />
       </div>
 
       {/* Registration Section */}
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      <div id="registration-section" className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="grid md:grid-cols-2 gap-8">
           {/* Ticket Selection */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center space-x-2">
                 <Ticket className="w-5 h-5" />
-                <span>Selecione seus Ingressos</span>
+                <span>Selecione seu Ingresso</span>
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -207,56 +210,131 @@ export default function EventPublic() {
                 <div className="text-center py-8">
                   <p className="text-gray-600">Nenhum ingresso disponível no momento.</p>
                 </div>
+              ) : (tickets as any[]).every((ticket: any) => isTicketExpired(ticket)) ? (
+                <div className="text-center py-8">
+                  <p className="text-gray-600">Todas as vendas de ingressos foram encerradas.</p>
+                </div>
               ) : (
-                (tickets as any[]).map((ticket: any) => (
-                  <div key={ticket.id} className="border rounded-lg p-4" data-testid={`ticket-option-${ticket.id}`}>
-                    <div className="flex justify-between items-start mb-3">
+                <>
+                  <div>
+                    <Label htmlFor="ticket-select">Tipo de Ingresso *</Label>
+                    <Select
+                      value={selectedTicket}
+                      onValueChange={handleTicketChange}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione um ingresso" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {(tickets as any[]).map((ticket: any) => {
+                          const expired = isTicketExpired(ticket);
+                          const expirationDate = formatTicketExpiration(ticket);
+                          
+                          return (
+                            <SelectItem 
+                              key={ticket.id} 
+                              value={ticket.id}
+                              disabled={expired}
+                              className={expired ? "opacity-50 cursor-not-allowed" : ""}
+                            >
+                              <div className="flex justify-between items-center w-full">
+                                <div className="flex-1">
+                                  <div className={`font-medium ${expired ? 'text-gray-500' : ''}`}>
+                                    {ticket.name}
+                                  </div>
+                                  {ticket.description && (
+                                    <div className={`text-sm ${expired ? 'text-gray-400' : 'text-gray-600'}`}>
+                                      {ticket.description}
+                                    </div>
+                                  )}
+                                  {expired && expirationDate && (
+                                    <div className="text-xs text-red-500 mt-1">
+                                      Vendas encerradas em: {expirationDate}
+                                    </div>
+                                  )}
+                                </div>
+                                <div className="ml-4 text-right">
+                                  <div className={`font-bold ${expired ? 'text-gray-500' : 'text-primary'}`}>
+                                    {parseFloat(ticket.price) === 0 ? 'Gratuito' : `R$ ${parseFloat(ticket.price).toFixed(2)}`}
+                                  </div>
+                                  {expired && (
+                                    <div className="text-xs text-red-500">
+                                      Indisponível
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            </SelectItem>
+                          );
+                        })}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  {selectedTicket && (
+                    <>
                       <div>
-                        <h3 className="font-semibold">{ticket.name}</h3>
-                        <p className="text-2xl font-bold text-primary">
-                          {parseFloat(ticket.price) === 0 ? 'Gratuito' : `R$ ${parseFloat(ticket.price).toFixed(2)}`}
-                        </p>
-                        {ticket.description && (
-                          <p className="text-sm text-gray-600 mt-1">{ticket.description}</p>
+                        <Label htmlFor="quantity">Quantidade *</Label>
+                        <div className="flex items-center space-x-2">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setTicketQuantity(Math.max(1, ticketQuantity - 1))}
+                            disabled={ticketQuantity <= 1}
+                          >
+                            -
+                          </Button>
+                          <Input
+                            id="quantity"
+                            type="number"
+                            min="1"
+                            max={getSelectedTicket()?.maxPerOrder || 10}
+                            value={ticketQuantity}
+                            onChange={(e) => {
+                              const value = parseInt(e.target.value) || 1;
+                              const max = getSelectedTicket()?.maxPerOrder || 10;
+                              setTicketQuantity(Math.min(Math.max(1, value), max));
+                            }}
+                            className="w-20 text-center"
+                            data-testid="input-ticket-quantity"
+                          />
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              const max = getSelectedTicket()?.maxPerOrder || 10;
+                              setTicketQuantity(Math.min(max, ticketQuantity + 1));
+                            }}
+                            disabled={ticketQuantity >= (getSelectedTicket()?.maxPerOrder || 10)}
+                          >
+                            +
+                          </Button>
+                        </div>
+                        {getSelectedTicket()?.maxPerOrder && (
+                          <p className="text-xs text-gray-500 mt-1">
+                            Máximo: {getSelectedTicket()?.maxPerOrder} por pedido
+                          </p>
                         )}
                       </div>
-                      <div className="text-right">
-                        <div className="text-sm text-gray-600">
-                          {ticket.sold || 0} / {ticket.quantity}
+                      
+                      <div className="border-t pt-4">
+                        <div className="flex justify-between items-center">
+                          <span className="text-lg font-semibold">Total:</span>
+                          <span className="text-2xl font-bold text-primary" data-testid="text-total-amount">
+                            {getSelectedTicketPrice() === 0 ? 'Gratuito' : `R$ ${getSelectedTicketPrice().toFixed(2)}`}
+                          </span>
                         </div>
-                        <div className="text-xs text-gray-500">vendidos</div>
+                        {ticketQuantity > 1 && (
+                          <div className="text-sm text-gray-600 mt-1">
+                            {ticketQuantity} × R$ {getSelectedTicket()?.price ? parseFloat(getSelectedTicket().price).toFixed(2) : '0.00'}
+                          </div>
+                        )}
                       </div>
-                    </div>
-                    
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-gray-600">Quantidade:</span>
-                      <Select
-                        value={selectedTickets[ticket.id]?.toString() || "0"}
-                        onValueChange={(value) => handleTicketChange(ticket.id, parseInt(value))}
-                      >
-                        <SelectTrigger className="w-20">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {Array.from({ length: Math.min(ticket.maxPerOrder || 10, ticket.quantity - (ticket.sold || 0)) + 1 }, (_, i) => (
-                            <SelectItem key={i} value={i.toString()}>{i}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-                ))
-              )}
-              
-              {(tickets as any[]).length > 0 && (
-                <div className="border-t pt-4">
-                  <div className="flex justify-between items-center">
-                    <span className="text-lg font-semibold">Total:</span>
-                    <span className="text-2xl font-bold text-primary" data-testid="text-total-amount">
-                      R$ {calculateTotal().toFixed(2)}
-                    </span>
-                  </div>
-                </div>
+                    </>
+                  )}
+                </>
               )}
             </CardContent>
           </Card>
@@ -303,27 +381,75 @@ export default function EventPublic() {
                   data-testid="input-registration-phone"
                 />
               </div>
-              
-              <div>
-                <Label htmlFor="document">CPF/CNPJ</Label>
-                <Input
-                  id="document"
-                  value={registrationData.document}
-                  onChange={(e) => setRegistrationData(prev => ({ ...prev, document: e.target.value }))}
-                  placeholder="000.000.000-00"
-                  data-testid="input-registration-document"
-                />
-              </div>
+
+              {/* Group Selection - only show if event has groups */}
+              {groups && groups.length > 0 && (
+                <div>
+                  <Label htmlFor="group">Grupo</Label>
+                  <Select
+                    value={registrationData.groupId}
+                    onValueChange={(value) => setRegistrationData(prev => ({ ...prev, groupId: value }))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione um grupo (opcional)" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Sem grupo específico</SelectItem>
+                      {groups.map((group: any) => (
+                        <SelectItem key={group.id} value={group.id}>
+                          {group.name}
+                          {group.capacity && (
+                            <span className="text-sm text-gray-500 ml-2">
+                              ({group.currentCount || 0}/{group.capacity})
+                            </span>
+                          )}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Escolha um grupo para se inscrever (opcional)
+                  </p>
+                </div>
+              )}
+
+              {/* Payment Type Selection - only show for paid events */}
+              {getSelectedTicketPrice() > 0 && (
+                <div>
+                  <Label htmlFor="paymentType">Forma de Pagamento</Label>
+                  <Select
+                    value={paymentType}
+                    onValueChange={(value: 'installments' | 'cash') => setPaymentType(value)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione a forma de pagamento" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="installments">
+                        Parcelamento PIX ({(event as any)?.pixInstallments || 12}x)
+                      </SelectItem>
+                      <SelectItem value="cash">
+                        À Vista (Desconto de R$ 20,00)
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-gray-500 mt-1">
+                    {paymentType === 'cash' 
+                      ? 'Pagamento à vista com desconto de R$ 20,00'
+                      : `Pagamento em ${(event as any)?.pixInstallments || 12} parcelas via PIX`
+                    }
+                  </p>
+                </div>
+              )}
               
               <Button 
                 className="w-full" 
                 size="lg"
                 onClick={handleRegister}
-                disabled={registerMutation.isPending || (tickets as any[]).length === 0}
+                disabled={(tickets as any[]).length === 0 || !selectedTicket}
                 data-testid="button-register"
               >
-                {registerMutation.isPending ? 'Processando...' : 
-                 calculateTotal() > 0 ? `Inscrever-se e Pagar R$ ${calculateTotal().toFixed(2)}` : 'Inscrever-se Gratuitamente'}
+                {getSelectedTicketPrice() > 0 ? `Inscrever-se - R$ ${getSelectedTicketPrice().toFixed(2)}` : 'Inscrever-se Gratuitamente'}
               </Button>
               
               <p className="text-xs text-gray-600 text-center">
@@ -336,56 +462,15 @@ export default function EventPublic() {
 
       {/* Event Content */}
       {eventData.pageComponents && eventData.pageComponents.length > 0 && (
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-          <Card>
-            <CardContent className="p-8">
-              <h2 className="text-2xl font-bold mb-6">Sobre o Evento</h2>
-              <div className="space-y-6">
-                {eventData.pageComponents.map((component: any, index: number) => (
-                  <div key={index} data-testid={`component-${component.type}-${index}`}>
-                    {component.type === 'header' && (
-                      <div className="text-center">
-                        <h3 className="text-3xl font-bold mb-2">{component.props?.title}</h3>
-                        {component.props?.subtitle && (
-                          <p className="text-xl text-gray-600">{component.props.subtitle}</p>
-                        )}
-                      </div>
-                    )}
-                    {component.type === 'text' && (
-                      <div className="prose max-w-none">
-                        <p className={component.props?.size === 'large' ? 'text-lg' : component.props?.size === 'small' ? 'text-sm' : 'text-base'}>
-                          {component.props?.content}
-                        </p>
-                      </div>
-                    )}
-                    {component.type === 'image' && component.props?.src && (
-                      <div className="text-center">
-                        <img 
-                          src={component.props.src} 
-                          alt={component.props.alt || 'Imagem do evento'}
-                          className="max-w-full h-auto mx-auto rounded-lg shadow-md"
-                          style={{ width: component.props.width || '100%' }}
-                        />
-                      </div>
-                    )}
-                    {component.type === 'button' && (
-                      <div className="text-center">
-                        <Button 
-                          size="lg" 
-                          className={component.props?.variant === 'secondary' ? 'bg-secondary' : ''}
-                          onClick={() => component.props?.link && window.open(component.props.link, '_blank')}
-                        >
-                          {component.props?.text}
-                        </Button>
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-8">
+            <EventSections sections={eventData.pageComponents} />
+          </div>
         </div>
       )}
+
+      {/* Footer */}
+      <EventFooter event={eventData} />
     </div>
   );
 }

@@ -6,6 +6,14 @@ import {
   registrations,
   templates,
   eventCategories,
+  eventGroups,
+  groupManagers,
+  groupPermissions,
+  eventPaymentPlans,
+  paymentInstallments,
+  paymentTransactions,
+  notifications,
+  notificationPreferences,
   type User,
   type UpsertUser,
   type UserSubscription,
@@ -20,15 +28,35 @@ import {
   type InsertTemplate,
   type EventCategory,
   type InsertEventCategory,
+  type EventGroup,
+  type InsertEventGroup,
+  type GroupManager,
+  type InsertGroupManager,
+  type GroupPermission,
+  type InsertGroupPermission,
+  type EventPaymentPlan,
+  type InsertEventPaymentPlan,
+  type PaymentInstallment,
+  type InsertPaymentInstallment,
+  type PaymentTransaction,
+  type InsertPaymentTransaction,
+  type Notification,
+  type InsertNotification,
+  type NotificationPreference,
+  type InsertNotificationPreference,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc, and, gte, sql } from "drizzle-orm";
+import { eq, desc, and, gte, lte, sql } from "drizzle-orm";
 
 export interface IStorage {
   // User operations (required for Replit Auth)
   getUser(id: string): Promise<User | undefined>;
+  getUserByEmail(email: string): Promise<User | undefined>;
+  createUser(user: UpsertUser): Promise<User>;
   upsertUser(user: UpsertUser): Promise<User>;
   updateUser(id: string, data: Partial<UpsertUser>): Promise<User>;
+  getAllUsers(): Promise<User[]>;
+  deleteUser(id: string): Promise<void>;
   
   // Subscription operations
   getUserSubscription(userId: string): Promise<UserSubscription | undefined>;
@@ -84,12 +112,126 @@ export interface IStorage {
     capacity: number;
     conversionRate: number;
   }>;
+
+  // Event Groups operations
+  createEventGroup(group: InsertEventGroup): Promise<EventGroup>;
+  updateEventGroup(id: string, group: Partial<InsertEventGroup>): Promise<EventGroup>;
+  getEventGroup(id: string): Promise<EventGroup | undefined>;
+  getEventGroups(eventId: string): Promise<EventGroup[]>;
+  deleteEventGroup(id: string): Promise<void>;
+
+  // Group Managers operations
+  createGroupManager(manager: InsertGroupManager): Promise<GroupManager>;
+  updateGroupManager(id: string, manager: Partial<InsertGroupManager>): Promise<GroupManager>;
+  getGroupManager(id: string): Promise<GroupManager | undefined>;
+  getGroupManagers(groupId: string): Promise<GroupManager[]>;
+  getUserGroupManagers(userId: string): Promise<(GroupManager & { group?: EventGroup })[]>;
+  deleteGroupManager(id: string): Promise<void>;
+  updateAllManagerPermissions(): Promise<number>;
+
+  // Group Dashboard operations
+  getGroupParticipants(groupId: string): Promise<any[]>;
+  getGroupPendingPayments(groupId: string): Promise<number>;
+  getGroupTotalRevenue(groupId: string): Promise<number>;
+  getGroupOverduePayments(groupId: string): Promise<number>;
+  getGroupConfirmedParticipants(groupId: string): Promise<number>;
+  checkUserGroupAccess(userId: string, groupId: string): Promise<boolean>;
+  getGroupPayments(groupId: string): Promise<PaymentTransaction[]>;
+  getUserEvents(userId: string): Promise<Event[]>;
+  getAllEvents(): Promise<Event[]>;
+  getUserManagedEvents(userId: string): Promise<Event[]>;
+
+  // Group Permissions operations
+  createGroupPermission(permission: InsertGroupPermission): Promise<GroupPermission>;
+  getGroupPermission(id: string): Promise<GroupPermission | undefined>;
+  getGroupPermissions(): Promise<GroupPermission[]>;
+
+  // Event Payment Plans operations
+  createEventPaymentPlan(plan: InsertEventPaymentPlan): Promise<EventPaymentPlan>;
+  updateEventPaymentPlan(id: string, plan: Partial<InsertEventPaymentPlan>): Promise<EventPaymentPlan>;
+  getEventPaymentPlan(id: string): Promise<EventPaymentPlan | undefined>;
+  getEventPaymentPlans(eventId: string): Promise<EventPaymentPlan[]>;
+  getDefaultEventPaymentPlan(eventId: string): Promise<EventPaymentPlan | undefined>;
+  deleteEventPaymentPlan(id: string): Promise<void>;
+
+  // Payment Installments operations
+  createPaymentInstallment(installment: InsertPaymentInstallment): Promise<PaymentInstallment>;
+  updatePaymentInstallment(id: string, installment: Partial<InsertPaymentInstallment>): Promise<PaymentInstallment>;
+  getPaymentInstallment(id: string): Promise<PaymentInstallment | undefined>;
+  getRegistrationInstallments(registrationId: string): Promise<PaymentInstallment[]>;
+  getEventInstallments(eventId: string): Promise<PaymentInstallment[]>;
+  getGroupInstallments(groupId: string): Promise<PaymentInstallment[]>;
+  getOverdueInstallments(eventId?: string): Promise<PaymentInstallment[]>;
+  getUpcomingInstallments(dueDate: Date): Promise<PaymentInstallment[]>;
+  deletePaymentInstallment(id: string): Promise<void>;
+
+  // Payment Transactions operations
+  createPaymentTransaction(transaction: InsertPaymentTransaction): Promise<PaymentTransaction>;
+  getPaymentTransaction(id: string): Promise<PaymentTransaction | undefined>;
+  getInstallmentTransactions(installmentId: string): Promise<PaymentTransaction[]>;
+  getRegistrationTransactions(registrationId: string): Promise<PaymentTransaction[]>;
+
+  // Payment Analytics operations
+  getPaymentAnalytics(eventId: string): Promise<{
+    totalExpected: string;
+    totalPaid: string;
+    totalRemaining: string;
+    overdueAmount: string;
+    overdueCount: number;
+    paidCount: number;
+    pendingCount: number;
+  }>;
+
+  // Notifications operations
+  createNotification(notification: InsertNotification): Promise<Notification>;
+  getNotification(id: string): Promise<Notification | undefined>;
+  getUserNotifications(userId: string, options?: {
+    limit?: number;
+    offset?: number;
+    unreadOnly?: boolean;
+    type?: string;
+    eventId?: string;
+    groupId?: string;
+  }): Promise<Notification[]>;
+  markNotificationAsRead(id: string): Promise<void>;
+  markAllNotificationsAsRead(userId: string): Promise<void>;
+  deleteNotification(id: string): Promise<void>;
+  archiveNotification(id: string): Promise<void>;
+  getUnreadNotificationCount(userId: string): Promise<number>;
+
+  // Notification Preferences operations
+  createNotificationPreference(preference: InsertNotificationPreference): Promise<NotificationPreference>;
+  getNotificationPreference(userId: string): Promise<NotificationPreference | undefined>;
+  updateNotificationPreference(userId: string, preference: Partial<InsertNotificationPreference>): Promise<NotificationPreference>;
+
+  getGroupPaymentAnalytics(groupId: string): Promise<{
+    totalExpected: string;
+    totalPaid: string;
+    totalRemaining: string;
+    overdueAmount: string;
+    overdueCount: number;
+    paidCount: number;
+    pendingCount: number;
+  }>;
 }
 
 export class DatabaseStorage implements IStorage {
   // User operations
   async getUser(id: string): Promise<User | undefined> {
     const [user] = await db.select().from(users).where(eq(users.id, id));
+    return user;
+  }
+
+  async getUserByEmail(email: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.email, email));
+    return user;
+  }
+
+  async createUser(userData: UpsertUser): Promise<User> {
+    const [user] = await db
+      .insert(users)
+      .values(userData)
+      .returning();
     return user;
   }
 
@@ -120,6 +262,18 @@ export class DatabaseStorage implements IStorage {
       .where(eq(users.id, id))
       .returning();
     return user;
+  }
+
+  async getAllUsers(): Promise<User[]> {
+    const allUsers = await db
+      .select()
+      .from(users)
+      .orderBy(desc(users.createdAt));
+    return allUsers;
+  }
+
+  async deleteUser(id: string): Promise<void> {
+    await db.delete(users).where(eq(users.id, id));
   }
 
   // Subscription operations
@@ -381,6 +535,814 @@ export class DatabaseStorage implements IStorage {
       }).format(totalRevenue),
       conversionRate: totalEvents > 0 ? `${Math.round((totalParticipants / (totalEvents * 100)) * 100)}%` : '0%',
     };
+  }
+
+  // Event Groups operations
+  async createEventGroup(groupData: InsertEventGroup): Promise<EventGroup> {
+    const [group] = await db.insert(eventGroups).values(groupData).returning();
+    return group;
+  }
+
+  async updateEventGroup(id: string, groupData: Partial<InsertEventGroup>): Promise<EventGroup> {
+    const [group] = await db
+      .update(eventGroups)
+      .set({ ...groupData, updatedAt: new Date() })
+      .where(eq(eventGroups.id, id))
+      .returning();
+    return group;
+  }
+
+  async getEventGroup(id: string): Promise<EventGroup | undefined> {
+    const [group] = await db.select().from(eventGroups).where(eq(eventGroups.id, id));
+    return group;
+  }
+
+  async getEventGroups(eventId: string): Promise<EventGroup[]> {
+    const groups = await db
+      .select()
+      .from(eventGroups)
+      .where(eq(eventGroups.eventId, eventId))
+      .orderBy(eventGroups.name);
+
+    // Para cada grupo, calcular o número atual de participantes
+    const groupsWithCount = await Promise.all(
+      groups.map(async (group) => {
+        const participants = await this.getGroupParticipants(group.id);
+        return {
+          ...group,
+          currentCount: participants.length
+        };
+      })
+    );
+
+    return groupsWithCount;
+  }
+
+  async deleteEventGroup(id: string): Promise<void> {
+    await db.delete(eventGroups).where(eq(eventGroups.id, id));
+  }
+
+  // Group Managers operations
+  async createGroupManager(managerData: InsertGroupManager): Promise<GroupManager> {
+    const [manager] = await db.insert(groupManagers).values(managerData).returning();
+    return manager;
+  }
+
+  async updateGroupManager(id: string, managerData: Partial<InsertGroupManager>): Promise<GroupManager> {
+    const [manager] = await db
+      .update(groupManagers)
+      .set({ ...managerData, updatedAt: new Date() })
+      .where(eq(groupManagers.id, id))
+      .returning();
+    return manager;
+  }
+
+  async getGroupManager(id: string): Promise<GroupManager | undefined> {
+    const [manager] = await db.select().from(groupManagers).where(eq(groupManagers.id, id));
+    return manager;
+  }
+
+  async getGroupManagers(groupId: string): Promise<GroupManager[]> {
+    try {
+      console.log('=== GET GROUP MANAGERS DEBUG ===');
+      console.log('GroupId:', groupId);
+      
+      const managers = await db
+        .select()
+        .from(groupManagers)
+        .where(eq(groupManagers.groupId, groupId));
+      
+      console.log('Managers found:', managers);
+      return managers;
+    } catch (error) {
+      console.error('Error fetching group managers:', error);
+      return [];
+    }
+  }
+
+  async getUserGroupManagers(userId: string): Promise<(GroupManager & { group?: EventGroup })[]> {
+    const managers = await db
+      .select()
+      .from(groupManagers)
+      .where(eq(groupManagers.userId, userId))
+      .orderBy(desc(groupManagers.assignedAt));
+
+    // Buscar dados dos grupos para cada manager
+    const managersWithGroups = await Promise.all(
+      managers.map(async (manager) => {
+        const group = await this.getEventGroup(manager.groupId);
+        return { ...manager, group };
+      })
+    );
+
+    return managersWithGroups;
+  }
+
+  async deleteGroupManager(id: string): Promise<void> {
+    await db.delete(groupManagers).where(eq(groupManagers.id, id));
+  }
+
+  async updateAllManagerPermissions(): Promise<number> {
+    const result = await db
+      .update(groupManagers)
+      .set({ 
+        permissions: ['read', 'write', 'participants', 'payments'],
+        updatedAt: new Date()
+      })
+      .where(eq(groupManagers.role, 'manager'))
+      .returning();
+    
+    return result.length;
+  }
+
+  // Group Permissions operations
+  async createGroupPermission(permissionData: InsertGroupPermission): Promise<GroupPermission> {
+    const [permission] = await db.insert(groupPermissions).values(permissionData).returning();
+    return permission;
+  }
+
+  async getGroupPermission(id: string): Promise<GroupPermission | undefined> {
+    const [permission] = await db.select().from(groupPermissions).where(eq(groupPermissions.id, id));
+    return permission;
+  }
+
+  async getGroupPermissions(): Promise<GroupPermission[]> {
+    return await db.select().from(groupPermissions).orderBy(groupPermissions.name);
+  }
+
+  // Event Payment Plans operations
+  async createEventPaymentPlan(planData: InsertEventPaymentPlan): Promise<EventPaymentPlan> {
+    const [plan] = await db.insert(eventPaymentPlans).values(planData).returning();
+    return plan;
+  }
+
+  async updateEventPaymentPlan(id: string, planData: Partial<InsertEventPaymentPlan>): Promise<EventPaymentPlan> {
+    const [plan] = await db
+      .update(eventPaymentPlans)
+      .set({ ...planData, updatedAt: new Date() })
+      .where(eq(eventPaymentPlans.id, id))
+      .returning();
+    return plan;
+  }
+
+  async getEventPaymentPlan(id: string): Promise<EventPaymentPlan | undefined> {
+    const [plan] = await db.select().from(eventPaymentPlans).where(eq(eventPaymentPlans.id, id));
+    return plan;
+  }
+
+  async getEventPaymentPlans(eventId: string): Promise<EventPaymentPlan[]> {
+    return await db
+      .select()
+      .from(eventPaymentPlans)
+      .where(eq(eventPaymentPlans.eventId, eventId))
+      .orderBy(eventPaymentPlans.name);
+  }
+
+  async getDefaultEventPaymentPlan(eventId: string): Promise<EventPaymentPlan | undefined> {
+    const [plan] = await db
+      .select()
+      .from(eventPaymentPlans)
+      .where(and(
+        eq(eventPaymentPlans.eventId, eventId),
+        eq(eventPaymentPlans.isDefault, true)
+      ));
+    return plan;
+  }
+
+  async deleteEventPaymentPlan(id: string): Promise<void> {
+    await db.delete(eventPaymentPlans).where(eq(eventPaymentPlans.id, id));
+  }
+
+  // Payment Installments operations
+  async createPaymentInstallment(installmentData: InsertPaymentInstallment): Promise<PaymentInstallment> {
+    const [installment] = await db.insert(paymentInstallments).values(installmentData).returning();
+    return installment;
+  }
+
+  async updatePaymentInstallment(id: string, installmentData: Partial<InsertPaymentInstallment>): Promise<PaymentInstallment> {
+    const [installment] = await db
+      .update(paymentInstallments)
+      .set({ ...installmentData, updatedAt: new Date() })
+      .where(eq(paymentInstallments.id, id))
+      .returning();
+    return installment;
+  }
+
+  async getPaymentInstallment(id: string): Promise<PaymentInstallment | undefined> {
+    const [installment] = await db.select().from(paymentInstallments).where(eq(paymentInstallments.id, id));
+    return installment;
+  }
+
+  async getRegistrationInstallments(registrationId: string): Promise<PaymentInstallment[]> {
+    return await db
+      .select()
+      .from(paymentInstallments)
+      .where(eq(paymentInstallments.registrationId, registrationId))
+      .orderBy(paymentInstallments.installmentNumber);
+  }
+
+  async getEventInstallments(eventId: string): Promise<PaymentInstallment[]> {
+    return await db
+      .select()
+      .from(paymentInstallments)
+      .innerJoin(registrations, eq(paymentInstallments.registrationId, registrations.id))
+      .where(eq(registrations.eventId, eventId))
+      .orderBy(paymentInstallments.dueDate);
+  }
+
+  async getGroupInstallments(groupId: string): Promise<PaymentInstallment[]> {
+    return await db
+      .select()
+      .from(paymentInstallments)
+      .innerJoin(registrations, eq(paymentInstallments.registrationId, registrations.id))
+      .where(eq(registrations.groupId, groupId))
+      .orderBy(paymentInstallments.dueDate);
+  }
+
+  async getOverdueInstallments(eventId?: string): Promise<PaymentInstallment[]> {
+    const now = new Date();
+    let query = db
+      .select()
+      .from(paymentInstallments)
+      .where(and(
+        eq(paymentInstallments.status, 'pending'),
+        sql`${paymentInstallments.dueDate} < ${now}`
+      ));
+
+    if (eventId) {
+      query = query
+        .innerJoin(registrations, eq(paymentInstallments.registrationId, registrations.id))
+        .where(and(
+          eq(registrations.eventId, eventId),
+          eq(paymentInstallments.status, 'pending'),
+          sql`${paymentInstallments.dueDate} < ${now}`
+        ));
+    }
+
+    return await query.orderBy(paymentInstallments.dueDate);
+  }
+
+  async getUpcomingInstallments(dueDate: Date): Promise<PaymentInstallment[]> {
+    const startOfDay = new Date(dueDate);
+    startOfDay.setHours(0, 0, 0, 0);
+    
+    const endOfDay = new Date(dueDate);
+    endOfDay.setHours(23, 59, 59, 999);
+
+    return await db
+      .select()
+      .from(paymentInstallments)
+      .where(and(
+        eq(paymentInstallments.status, 'pending'),
+        gte(paymentInstallments.dueDate, startOfDay),
+        lte(paymentInstallments.dueDate, endOfDay)
+      ))
+      .orderBy(paymentInstallments.dueDate);
+  }
+
+  async deletePaymentInstallment(id: string): Promise<void> {
+    await db.delete(paymentInstallments).where(eq(paymentInstallments.id, id));
+  }
+
+  // Payment Transactions operations
+  async createPaymentTransaction(transactionData: InsertPaymentTransaction): Promise<PaymentTransaction> {
+    const [transaction] = await db.insert(paymentTransactions).values(transactionData).returning();
+    return transaction;
+  }
+
+  async getPaymentTransaction(id: string): Promise<PaymentTransaction | undefined> {
+    const [transaction] = await db.select().from(paymentTransactions).where(eq(paymentTransactions.id, id));
+    return transaction;
+  }
+
+  async getInstallmentTransactions(installmentId: string): Promise<PaymentTransaction[]> {
+    return await db
+      .select()
+      .from(paymentTransactions)
+      .where(eq(paymentTransactions.installmentId, installmentId))
+      .orderBy(desc(paymentTransactions.createdAt));
+  }
+
+  async getRegistrationTransactions(registrationId: string): Promise<PaymentTransaction[]> {
+    return await db
+      .select()
+      .from(paymentTransactions)
+      .innerJoin(paymentInstallments, eq(paymentTransactions.installmentId, paymentInstallments.id))
+      .where(eq(paymentInstallments.registrationId, registrationId))
+      .orderBy(desc(paymentTransactions.createdAt));
+  }
+
+  // Payment Analytics operations
+  async getPaymentAnalytics(eventId: string): Promise<{
+    totalExpected: string;
+    totalPaid: string;
+    totalRemaining: string;
+    overdueAmount: string;
+    overdueCount: number;
+    paidCount: number;
+    pendingCount: number;
+  }> {
+    const now = new Date();
+    
+    const [stats] = await db
+      .select({
+        totalExpected: sql<number>`COALESCE(SUM(${paymentInstallments.originalAmount}), 0)`,
+        totalPaid: sql<number>`COALESCE(SUM(${paymentInstallments.paidAmount}), 0)`,
+        totalRemaining: sql<number>`COALESCE(SUM(${paymentInstallments.remainingAmount}), 0)`,
+        overdueAmount: sql<number>`COALESCE(SUM(CASE WHEN ${paymentInstallments.dueDate} < ${now} AND ${paymentInstallments.status} = 'pending' THEN ${paymentInstallments.remainingAmount} ELSE 0 END), 0)`,
+        overdueCount: sql<number>`COUNT(CASE WHEN ${paymentInstallments.dueDate} < ${now} AND ${paymentInstallments.status} = 'pending' THEN 1 END)`,
+        paidCount: sql<number>`COUNT(CASE WHEN ${paymentInstallments.status} = 'paid' THEN 1 END)`,
+        pendingCount: sql<number>`COUNT(CASE WHEN ${paymentInstallments.status} = 'pending' THEN 1 END)`,
+      })
+      .from(paymentInstallments)
+      .innerJoin(registrations, eq(paymentInstallments.registrationId, registrations.id))
+      .where(eq(registrations.eventId, eventId));
+
+    return {
+      totalExpected: new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(stats.totalExpected),
+      totalPaid: new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(stats.totalPaid),
+      totalRemaining: new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(stats.totalRemaining),
+      overdueAmount: new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(stats.overdueAmount),
+      overdueCount: stats.overdueCount,
+      paidCount: stats.paidCount,
+      pendingCount: stats.pendingCount,
+    };
+  }
+
+  async getGroupPaymentAnalytics(groupId: string): Promise<{
+    totalExpected: string;
+    totalPaid: string;
+    totalRemaining: string;
+    overdueAmount: string;
+    overdueCount: number;
+    paidCount: number;
+    pendingCount: number;
+  }> {
+    const now = new Date();
+    
+    const [stats] = await db
+      .select({
+        totalExpected: sql<number>`COALESCE(SUM(${paymentInstallments.originalAmount}), 0)`,
+        totalPaid: sql<number>`COALESCE(SUM(${paymentInstallments.paidAmount}), 0)`,
+        totalRemaining: sql<number>`COALESCE(SUM(${paymentInstallments.remainingAmount}), 0)`,
+        overdueAmount: sql<number>`COALESCE(SUM(CASE WHEN ${paymentInstallments.dueDate} < ${now} AND ${paymentInstallments.status} = 'pending' THEN ${paymentInstallments.remainingAmount} ELSE 0 END), 0)`,
+        overdueCount: sql<number>`COUNT(CASE WHEN ${paymentInstallments.dueDate} < ${now} AND ${paymentInstallments.status} = 'pending' THEN 1 END)`,
+        paidCount: sql<number>`COUNT(CASE WHEN ${paymentInstallments.status} = 'paid' THEN 1 END)`,
+        pendingCount: sql<number>`COUNT(CASE WHEN ${paymentInstallments.status} = 'pending' THEN 1 END)`,
+      })
+      .from(paymentInstallments)
+      .innerJoin(registrations, eq(paymentInstallments.registrationId, registrations.id))
+      .where(eq(registrations.groupId, groupId));
+
+    return {
+      totalExpected: new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(stats.totalExpected),
+      totalPaid: new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(stats.totalPaid),
+      totalRemaining: new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(stats.totalRemaining),
+      overdueAmount: new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(stats.overdueAmount),
+      overdueCount: stats.overdueCount,
+      paidCount: stats.paidCount,
+      pendingCount: stats.pendingCount,
+    };
+  }
+
+  // Notifications operations
+  async createNotification(notificationData: InsertNotification): Promise<Notification> {
+    const [notification] = await db.insert(notifications).values(notificationData).returning();
+    return notification;
+  }
+
+  async getNotification(id: string): Promise<Notification | undefined> {
+    const [notification] = await db.select().from(notifications).where(eq(notifications.id, id));
+    return notification;
+  }
+
+  async getUserNotifications(userId: string, options: {
+    limit?: number;
+    offset?: number;
+    unreadOnly?: boolean;
+    type?: string;
+    eventId?: string;
+    groupId?: string;
+  } = {}): Promise<Notification[]> {
+    const { limit = 50, offset = 0, unreadOnly = false, type, eventId, groupId } = options;
+    
+    let query = db
+      .select()
+      .from(notifications)
+      .where(eq(notifications.userId, userId));
+
+    if (unreadOnly) {
+      query = query.where(and(eq(notifications.userId, userId), eq(notifications.isRead, false)));
+    }
+
+    if (type) {
+      query = query.where(and(eq(notifications.userId, userId), eq(notifications.type, type)));
+    }
+
+    if (eventId) {
+      query = query.where(and(eq(notifications.userId, userId), eq(notifications.eventId, eventId)));
+    }
+
+    if (groupId) {
+      query = query.where(and(eq(notifications.userId, userId), eq(notifications.groupId, groupId)));
+    }
+
+    return await query
+      .orderBy(desc(notifications.createdAt))
+      .limit(limit)
+      .offset(offset);
+  }
+
+  async markNotificationAsRead(id: string): Promise<void> {
+    await db
+      .update(notifications)
+      .set({ isRead: true, readAt: new Date() })
+      .where(eq(notifications.id, id));
+  }
+
+  async markAllNotificationsAsRead(userId: string): Promise<void> {
+    await db
+      .update(notifications)
+      .set({ isRead: true, readAt: new Date() })
+      .where(eq(notifications.userId, userId));
+  }
+
+  async deleteNotification(id: string): Promise<void> {
+    await db.delete(notifications).where(eq(notifications.id, id));
+  }
+
+  async archiveNotification(id: string): Promise<void> {
+    await db
+      .update(notifications)
+      .set({ isArchived: true })
+      .where(eq(notifications.id, id));
+  }
+
+  async getUnreadNotificationCount(userId: string): Promise<number> {
+    const [result] = await db
+      .select({ count: sql<number>`COUNT(*)` })
+      .from(notifications)
+      .where(and(eq(notifications.userId, userId), eq(notifications.isRead, false)));
+    
+    return result.count;
+  }
+
+  // Notification Preferences operations
+  async createNotificationPreference(preferenceData: InsertNotificationPreference): Promise<NotificationPreference> {
+    const [preference] = await db.insert(notificationPreferences).values(preferenceData).returning();
+    return preference;
+  }
+
+  async getNotificationPreference(userId: string): Promise<NotificationPreference | undefined> {
+    const [preference] = await db
+      .select()
+      .from(notificationPreferences)
+      .where(eq(notificationPreferences.userId, userId));
+    return preference;
+  }
+
+  async updateNotificationPreference(userId: string, preferenceData: Partial<InsertNotificationPreference>): Promise<NotificationPreference> {
+    const [preference] = await db
+      .update(notificationPreferences)
+      .set({ ...preferenceData, updatedAt: new Date() })
+      .where(eq(notificationPreferences.userId, userId))
+      .returning();
+    return preference;
+  }
+
+  // Group Dashboard operations
+  async getGroupParticipants(groupId: string): Promise<any[]> {
+    const participants = await db
+      .select()
+      .from(registrations)
+      .where(eq(registrations.groupId, groupId))
+      .orderBy(desc(registrations.createdAt));
+    
+    // Carregar parcelas para cada participante
+    const participantsWithInstallments = await Promise.all(
+      participants.map(async (participant) => {
+        const installments = await db
+          .select()
+          .from(paymentInstallments)
+          .where(eq(paymentInstallments.registrationId, participant.id))
+          .orderBy(paymentInstallments.installmentNumber);
+        
+        return {
+          ...participant,
+          installments: installments.map(installment => ({
+            id: installment.id,
+            installmentNumber: installment.installmentNumber,
+            amount: installment.originalAmount,
+            dueDate: installment.dueDate,
+            paidDate: installment.paidDate,
+            status: installment.status
+          }))
+        };
+      })
+    );
+    
+    return participantsWithInstallments;
+  }
+
+  // Event participants with installments
+  async getEventParticipantsWithInstallments(eventId: string): Promise<any[]> {
+    const participants = await db
+      .select()
+      .from(registrations)
+      .where(eq(registrations.eventId, eventId))
+      .orderBy(desc(registrations.createdAt));
+    
+    // Carregar parcelas para cada participante
+    const participantsWithInstallments = await Promise.all(
+      participants.map(async (participant) => {
+        const installments = await db
+          .select()
+          .from(paymentInstallments)
+          .where(eq(paymentInstallments.registrationId, participant.id))
+          .orderBy(paymentInstallments.installmentNumber);
+        
+        
+        return {
+          ...participant,
+          installments: installments.map(installment => ({
+            id: installment.id,
+            installmentNumber: installment.installmentNumber,
+            amount: installment.originalAmount,
+            dueDate: installment.dueDate,
+            paidDate: installment.paidDate,
+            status: installment.status
+          }))
+        };
+      })
+    );
+    
+    return participantsWithInstallments;
+  }
+
+  async getGroupPendingPayments(groupId: string): Promise<number> {
+    const result = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(paymentInstallments)
+      .innerJoin(registrations, eq(paymentInstallments.registrationId, registrations.id))
+      .where(
+        and(
+          eq(registrations.groupId, groupId),
+          eq(paymentInstallments.status, 'pending')
+        )
+      );
+    return result[0]?.count || 0;
+  }
+
+  async getGroupTotalRevenue(groupId: string): Promise<number> {
+    const result = await db
+      .select({ total: sql<number>`coalesce(sum(${paymentTransactions.amount}), 0)` })
+      .from(paymentTransactions)
+      .innerJoin(paymentInstallments, eq(paymentTransactions.installmentId, paymentInstallments.id))
+      .innerJoin(registrations, eq(paymentInstallments.registrationId, registrations.id))
+      .where(
+        and(
+          eq(registrations.groupId, groupId),
+          eq(paymentTransactions.type, 'payment')
+        )
+      );
+    return result[0]?.total || 0;
+  }
+
+  async getGroupOverduePayments(groupId: string): Promise<number> {
+    const result = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(paymentInstallments)
+      .innerJoin(registrations, eq(paymentInstallments.registrationId, registrations.id))
+      .where(
+        and(
+          eq(registrations.groupId, groupId),
+          eq(paymentInstallments.status, 'pending'),
+          sql`${paymentInstallments.dueDate} < ${new Date()}`
+        )
+      );
+    return result[0]?.count || 0;
+  }
+
+  async getGroupConfirmedParticipants(groupId: string): Promise<number> {
+    const participants = await db
+      .select()
+      .from(registrations)
+      .where(eq(registrations.groupId, groupId));
+
+    let confirmedCount = 0;
+
+    for (const participant of participants) {
+      // Carregar parcelas do participante
+      const installments = await db
+        .select()
+        .from(paymentInstallments)
+        .where(eq(paymentInstallments.registrationId, participant.id))
+        .orderBy(paymentInstallments.installmentNumber);
+
+      if (installments.length === 0) {
+        // Se não tem parcelas, verificar se tem pagamento à vista confirmado
+        if (participant.paymentStatus === 'paid' && Number(participant.amountPaid) > 0) {
+          confirmedCount++;
+        }
+      } else {
+        // Se tem parcelas, verificar se pelo menos uma está paga
+        const hasPaidInstallment = installments.some(installment => installment.status === 'paid');
+        if (hasPaidInstallment) {
+          confirmedCount++;
+        }
+      }
+    }
+
+    return confirmedCount;
+  }
+
+  // Obter um grupo por ID
+  async getGroupById(groupId: string) {
+    try {
+      console.log('=== GET GROUP BY ID DEBUG ===');
+      console.log('GroupId:', groupId);
+      
+      // Primeiro, buscar o grupo básico
+      const [group] = await db
+        .select()
+        .from(eventGroups)
+        .where(eq(eventGroups.id, groupId))
+        .limit(1);
+
+      if (!group) {
+        console.log('Grupo não encontrado');
+        return null;
+      }
+
+      console.log('Grupo encontrado:', group);
+      
+      // Buscar dados do evento separadamente
+      const [event] = await db
+        .select({
+          id: events.id,
+          name: events.title,
+        })
+        .from(events)
+        .where(eq(events.id, group.eventId))
+        .limit(1);
+
+      // Retornar o grupo com dados do evento
+      return {
+        ...group,
+        event: event || null
+      };
+    } catch (error) {
+      console.error('Erro ao buscar grupo por ID:', error);
+      throw error;
+    }
+  }
+
+  async checkUserGroupAccess(userId: string, groupId: string): Promise<boolean> {
+    // Verificar se é organizador do evento
+    const group = await db
+      .select()
+      .from(eventGroups)
+      .where(eq(eventGroups.id, groupId))
+      .limit(1);
+
+    if (group.length === 0) return false;
+
+    const event = await db
+      .select()
+      .from(events)
+      .where(eq(events.id, group[0].eventId))
+      .limit(1);
+
+    if (event.length > 0 && event[0].organizerId === userId) {
+      return true;
+    }
+
+    // Verificar se é gestor do grupo
+    const groupManager = await db
+      .select()
+      .from(groupManagers)
+      .where(
+        and(
+          eq(groupManagers.userId, userId),
+          eq(groupManagers.groupId, groupId)
+        )
+      )
+      .limit(1);
+
+    return groupManager.length > 0;
+  }
+
+  async getGroupPayments(groupId: string): Promise<PaymentTransaction[]> {
+    const payments = await db
+      .select({
+        id: paymentTransactions.id,
+        installmentId: paymentTransactions.installmentId,
+        amount: paymentTransactions.amount,
+        type: paymentTransactions.type,
+        paymentMethod: paymentTransactions.paymentMethod,
+        transactionId: paymentTransactions.transactionId,
+        notes: paymentTransactions.notes,
+        createdBy: paymentTransactions.createdBy,
+        createdAt: paymentTransactions.createdAt,
+        updatedAt: paymentTransactions.updatedAt
+      })
+      .from(paymentTransactions)
+      .innerJoin(paymentInstallments, eq(paymentTransactions.installmentId, paymentInstallments.id))
+      .innerJoin(registrations, eq(paymentInstallments.registrationId, registrations.id))
+      .where(eq(registrations.groupId, groupId))
+      .orderBy(desc(paymentTransactions.createdAt));
+    
+    return payments;
+  }
+
+  async getUserEvents(userId: string): Promise<Event[]> {
+    const userEvents = await db
+      .select()
+      .from(events)
+      .where(eq(events.organizerId, userId))
+      .orderBy(desc(events.createdAt));
+    
+    return userEvents;
+  }
+
+  async getAllEvents(): Promise<Event[]> {
+    const allEvents = await db
+      .select()
+      .from(events)
+      .orderBy(desc(events.createdAt));
+    
+    return allEvents;
+  }
+
+  async getUserManagedEvents(userId: string): Promise<Event[]> {
+    // Buscar eventos dos grupos que o usuário gerencia
+    const managedEvents = await db
+      .select()
+      .from(events)
+      .innerJoin(eventGroups, eq(events.id, eventGroups.eventId))
+      .innerJoin(groupManagers, eq(eventGroups.id, groupManagers.groupId))
+      .where(eq(groupManagers.userId, userId))
+      .orderBy(desc(events.createdAt));
+    
+    return managedEvents;
+  }
+
+
+  async findUserByEmail(email: string) {
+    const user = await db
+      .select()
+      .from(users)
+      .where(eq(users.email, email))
+      .limit(1);
+
+    return user[0] || null;
+  }
+
+  async getEventById(eventId: string) {
+    const event = await db
+      .select()
+      .from(events)
+      .where(eq(events.id, eventId))
+      .limit(1);
+
+    return event[0] || null;
+  }
+
+  // Get installment by ID
+  async getInstallmentById(installmentId: string): Promise<any> {
+    const result = await db
+      .select()
+      .from(paymentInstallments)
+      .where(eq(paymentInstallments.id, installmentId))
+      .limit(1);
+    
+    return result[0] || null;
+  }
+
+  // Get registration by ID
+  async getRegistrationById(registrationId: string): Promise<any> {
+    const result = await db
+      .select()
+      .from(registrations)
+      .where(eq(registrations.id, registrationId))
+      .limit(1);
+    
+    return result[0] || null;
+  }
+
+  // Mark installment as paid
+  async markInstallmentAsPaid(installmentId: string, updatedBy: string): Promise<void> {
+    await db
+      .update(paymentInstallments)
+      .set({
+        status: 'paid',
+        paidDate: new Date(),
+        paidAmount: sql`original_amount`,
+        remainingAmount: '0',
+        updatedBy: updatedBy,
+        updatedAt: new Date()
+      })
+      .where(eq(paymentInstallments.id, installmentId));
   }
 }
 

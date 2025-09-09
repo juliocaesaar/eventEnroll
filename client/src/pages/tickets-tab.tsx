@@ -29,7 +29,9 @@ export default function TicketsTab({ eventId, tickets, refetchTickets }: Tickets
     salesEnd: '',
     minPerOrder: 1,
     maxPerOrder: 10,
+    pixUrl: '',
   });
+  const [priceError, setPriceError] = useState('');
 
   // Ticket management mutations
   const saveTicketMutation = useMutation({
@@ -89,7 +91,24 @@ export default function TicketsTab({ eventId, tickets, refetchTickets }: Tickets
       salesEnd: '',
       minPerOrder: 1,
       maxPerOrder: 10,
+      pixUrl: '',
     });
+    setPriceError('');
+  };
+
+  const validatePrice = (price: string) => {
+    const numPrice = parseFloat(price) || 0;
+    if (numPrice > 0 && numPrice < 5.00) {
+      setPriceError('O preço deve ser de pelo menos R$ 5,00');
+    } else {
+      setPriceError('');
+    }
+  };
+
+  const handlePriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setTicketData(prev => ({ ...prev, price: value }));
+    validatePrice(value);
   };
 
   const handleTicketSave = () => {
@@ -102,9 +121,19 @@ export default function TicketsTab({ eventId, tickets, refetchTickets }: Tickets
       return;
     }
 
+    const price = parseFloat(ticketData.price) || 0;
+    if (price > 0 && price < 5.00) {
+      toast({
+        title: "Preço inválido",
+        description: "O preço do ingresso deve ser de pelo menos R$ 5,00.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     const submitData = {
       ...ticketData,
-      price: parseFloat(ticketData.price) || 0,
+      price: price,
       salesStart: ticketData.salesStart ? new Date(ticketData.salesStart).toISOString() : null,
       salesEnd: ticketData.salesEnd ? new Date(ticketData.salesEnd).toISOString() : null,
     };
@@ -123,7 +152,9 @@ export default function TicketsTab({ eventId, tickets, refetchTickets }: Tickets
       salesEnd: ticket.salesEnd ? new Date(ticket.salesEnd).toISOString().slice(0, 16) : '',
       minPerOrder: ticket.minPerOrder || 1,
       maxPerOrder: ticket.maxPerOrder || 10,
+      pixUrl: ticket.pixUrl || '',
     });
+    setPriceError(''); // Limpar erro ao editar
     setIsTicketDialogOpen(true);
   };
 
@@ -186,12 +217,16 @@ export default function TicketsTab({ eventId, tickets, refetchTickets }: Tickets
                     id="ticket-price"
                     type="number"
                     value={ticketData.price}
-                    onChange={(e) => setTicketData(prev => ({ ...prev, price: e.target.value }))}
+                    onChange={handlePriceChange}
                     placeholder="0.00"
                     step="0.01"
                     min="0"
                     data-testid="input-ticket-price"
+                    className={priceError ? "border-red-500" : ""}
                   />
+                  {priceError && (
+                    <p className="text-sm text-red-500 mt-1">{priceError}</p>
+                  )}
                 </div>
                 
                 <div>
@@ -206,6 +241,21 @@ export default function TicketsTab({ eventId, tickets, refetchTickets }: Tickets
                     data-testid="input-ticket-quantity"
                   />
                 </div>
+              </div>
+              
+              <div>
+                <Label htmlFor="ticket-pix-url">URL do PIX (Copia e Cola)</Label>
+                <Input
+                  id="ticket-pix-url"
+                  type="url"
+                  value={ticketData.pixUrl}
+                  onChange={(e) => setTicketData(prev => ({ ...prev, pixUrl: e.target.value }))}
+                  placeholder="https://pix.example.com/..."
+                  data-testid="input-ticket-pix-url"
+                />
+                <p className="text-sm text-gray-500 mt-1">
+                  Cole aqui a URL do PIX copia e cola para gerar o QR code de pagamento
+                </p>
               </div>
               
               <div className="grid grid-cols-2 gap-4">

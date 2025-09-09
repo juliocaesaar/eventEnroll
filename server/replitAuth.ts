@@ -40,25 +40,10 @@ export function getSession() {
 export async function setupAuth(app: Express) {
   app.set("trust proxy", 1);
   app.use(getSession());
-  
-  // Simple mock user for development
-  app.use((req, res, next) => {
-    if (!req.session.user) {
-      req.session.user = {
-        id: 'default-user-123',
-        email: 'admin@example.com',
-        firstName: 'Admin',
-        lastName: 'User',
-        currentPlan: 'free'
-      };
-    }
-    next();
-  });
 }
 
 export const isAuthenticated: RequestHandler = async (req, res, next) => {
-  if (req.session.user) {
-    return next();
-  }
-  return res.status(401).json({ message: "Unauthorized" });
+  // Importar o middleware JWT
+  const { authenticateToken } = await import('./middleware/auth');
+  return authenticateToken(req, res, next);
 };

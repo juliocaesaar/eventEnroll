@@ -8,6 +8,62 @@
       "when": 1756751249313,
       "tag": "0000_clear_puppet_master",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1757133250548,
+      "tag": "0001_jazzy_killraven",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1757134771389,
+      "tag": "0002_minor_enchantress",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1757135149598,
+      "tag": "0003_swift_captain_marvel",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1757137386729,
+      "tag": "0004_quiet_starhawk",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1757164384688,
+      "tag": "0005_keen_darwin",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1757173136915,
+      "tag": "0006_remarkable_shiva",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1757349612716,
+      "tag": "0007_spicy_shatterstar",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1757352081926,
+      "tag": "0008_zippy_paibok",
+      "breakpoints": true
     }
   ]
 }

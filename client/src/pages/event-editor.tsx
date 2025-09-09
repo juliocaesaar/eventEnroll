@@ -14,6 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import DragDropEditor from "@/components/ui/drag-drop-editor";
 import TicketsTab from "./tickets-tab";
+import Layout from "@/components/layout/Layout";
 import { type InsertEventSchema } from "@shared/schema";
 
 export default function EventEditor() {
@@ -44,6 +45,9 @@ export default function EventEditor() {
     capacity: 100,
     status: 'draft',
     pageComponents: [],
+    pixInstallments: 12, // Número padrão de parcelas PIX
+    pixKeyType: 'cpf', // Tipo da chave PIX
+    pixKey: '', // Chave PIX
   });
 
   const isEditing = !!eventId;
@@ -191,32 +195,38 @@ export default function EventEditor() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white border-b border-gray-200 sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center space-x-4">
-              <Button 
-                variant="ghost" 
-                size="sm"
-                onClick={() => setLocation(isEditing ? '/events' : '/')}
-                data-testid="button-back"
-              >
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                Voltar
-              </Button>
-              <div className="flex items-center space-x-2">
-                <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-                  <Calendar className="w-4 h-4 text-white" />
-                </div>
-                <span className="text-xl font-bold text-gray-900">
-                  {isEditing ? 'Editar Evento' : 'Novo Evento'}
-                </span>
+    <Layout 
+      currentPage="events"
+      breadcrumbs={[
+        { label: 'Dashboard', href: '/' },
+        { label: 'Eventos', href: '/events' },
+        { label: isEditing ? 'Editar Evento' : 'Novo Evento' }
+      ]}
+    >
+      {/* Editor Header */}
+      <div className="bg-white border rounded-lg p-4 mb-6">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-4">
+            <Button 
+              variant="ghost" 
+              size="sm"
+              onClick={() => setLocation(isEditing ? '/events' : '/')}
+              data-testid="button-back"
+            >
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Voltar
+            </Button>
+            <div className="flex items-center space-x-2">
+              <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
+                <Calendar className="w-4 h-4 text-white" />
               </div>
+              <span className="text-xl font-bold text-gray-900">
+                {isEditing ? 'Editar Evento' : 'Novo Evento'}
+              </span>
             </div>
+          </div>
 
-            <div className="flex items-center space-x-3">
+          <div className="flex items-center space-x-3">
               <Button 
                 variant="outline"
                 onClick={() => setIsPreview(!isPreview)}
@@ -236,9 +246,6 @@ export default function EventEditor() {
             </div>
           </div>
         </div>
-      </header>
-
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {isPreview ? (
           /* Preview Mode */
           <div className="bg-white rounded-lg shadow-sm border min-h-[600px]">
@@ -384,6 +391,85 @@ export default function EventEditor() {
                           </SelectContent>
                         </Select>
                       </div>
+
+                      <div>
+                        <Label htmlFor="whatsappNumber">WhatsApp do Evento</Label>
+                        <Input
+                          id="whatsappNumber"
+                          type="tel"
+                          value={eventData.whatsappNumber || ''}
+                          onChange={(e) => handleInputChange('whatsappNumber', e.target.value)}
+                          placeholder="(11) 99999-9999"
+                          data-testid="input-event-whatsapp"
+                        />
+                        <p className="text-xs text-gray-500 mt-1">
+                          Número para contato geral do evento (formato: +5511999999999)
+                        </p>
+                      </div>
+
+                      <div>
+                        <Label htmlFor="pixKeyType">Tipo da Chave PIX</Label>
+                        <Select 
+                          value={eventData.pixKeyType || 'cpf'} 
+                          onValueChange={(value) => handleInputChange('pixKeyType', value)}
+                        >
+                          <SelectTrigger data-testid="select-pix-key-type">
+                            <SelectValue placeholder="Selecione o tipo da chave" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="cpf">CPF</SelectItem>
+                            <SelectItem value="cnpj">CNPJ</SelectItem>
+                            <SelectItem value="email">E-mail</SelectItem>
+                            <SelectItem value="phone">Telefone</SelectItem>
+                            <SelectItem value="random">Chave Aleatória</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <p className="text-xs text-gray-500 mt-1">
+                          Tipo da chave PIX que será usada para receber pagamentos
+                        </p>
+                      </div>
+
+                      <div>
+                        <Label htmlFor="pixKey">Chave PIX</Label>
+                        <Input
+                          id="pixKey"
+                          type="text"
+                          value={eventData.pixKey || ''}
+                          onChange={(e) => handleInputChange('pixKey', e.target.value)}
+                          placeholder={
+                            eventData.pixKeyType === 'cpf' ? '000.000.000-00' :
+                            eventData.pixKeyType === 'cnpj' ? '00.000.000/0000-00' :
+                            eventData.pixKeyType === 'email' ? 'seu@email.com' :
+                            eventData.pixKeyType === 'phone' ? '(11) 99999-9999' :
+                            'Chave aleatória do banco'
+                          }
+                          data-testid="input-event-pix-key"
+                        />
+                        <p className="text-xs text-gray-500 mt-1">
+                          {eventData.pixKeyType === 'cpf' && 'Digite o CPF sem pontos e hífens (apenas números)'}
+                          {eventData.pixKeyType === 'cnpj' && 'Digite o CNPJ sem pontos, barras e hífens (apenas números)'}
+                          {eventData.pixKeyType === 'email' && 'Digite o e-mail que será usado como chave PIX'}
+                          {eventData.pixKeyType === 'phone' && 'Digite o telefone com DDD (apenas números)'}
+                          {eventData.pixKeyType === 'random' && 'Cole aqui a chave aleatória fornecida pelo seu banco'}
+                        </p>
+                      </div>
+
+                      <div>
+                        <Label htmlFor="pixInstallments">Número de Parcelas PIX</Label>
+                        <Input
+                          id="pixInstallments"
+                          type="number"
+                          value={eventData.pixInstallments || 12}
+                          onChange={(e) => handleInputChange('pixInstallments', parseInt(e.target.value) || 12)}
+                          placeholder="12"
+                          min="1"
+                          max="24"
+                          data-testid="input-event-pix-installments"
+                        />
+                        <p className="text-xs text-gray-500 mt-1">
+                          Número de parcelas para pagamento PIX (1-24 parcelas)
+                        </p>
+                      </div>
                     </CardContent>
                   </Card>
                 </div>
@@ -429,7 +515,6 @@ export default function EventEditor() {
             </TabsContent>
           </Tabs>
         )}
-      </main>
-    </div>
+    </Layout>
   );
 }
