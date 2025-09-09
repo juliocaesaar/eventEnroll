@@ -1094,7 +1094,8 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getGroupTotalRevenue(groupId: string): Promise<number> {
-    const result = await db
+    // Buscar receita de parcelas pagas
+    const installmentRevenue = await db
       .select({ total: sql<number>`coalesce(sum(${paymentTransactions.amount}), 0)` })
       .from(paymentTransactions)
       .innerJoin(paymentInstallments, eq(paymentTransactions.installmentId, paymentInstallments.id))
@@ -1102,10 +1103,29 @@ export class DatabaseStorage implements IStorage {
       .where(
         and(
           eq(registrations.groupId, groupId),
-          eq(paymentTransactions.type, 'payment')
+          eq(paymentTransactions.type, 'payment'),
+          eq(paymentTransactions.status, 'completed')
         )
       );
-    return result[0]?.total || 0;
+
+    // Buscar receita de pagamentos à vista
+    const upfrontRevenue = await db
+      .select({ total: sql<number>`coalesce(sum(${paymentTransactions.amount}), 0)` })
+      .from(paymentTransactions)
+      .innerJoin(registrations, eq(paymentTransactions.registrationId, registrations.id))
+      .where(
+        and(
+          eq(registrations.groupId, groupId),
+          eq(paymentTransactions.type, 'payment'),
+          eq(paymentTransactions.status, 'completed'),
+          isNull(paymentTransactions.installmentId) // Pagamentos à vista não têm installmentId
+        )
+      );
+
+    const installmentTotal = installmentRevenue[0]?.total || 0;
+    const upfrontTotal = upfrontRevenue[0]?.total || 0;
+    
+    return installmentTotal + upfrontTotal;
   }
 
   async getGroupOverduePayments(groupId: string): Promise<number> {

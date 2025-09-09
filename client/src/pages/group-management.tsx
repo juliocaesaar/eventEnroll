@@ -105,8 +105,8 @@ export default function GroupManagementPage() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <div className="mb-8">
-          <div className="flex items-center justify-between">
-            <div>
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+            <div className="flex-1">
               <Button 
                 variant="ghost" 
                 onClick={() => setLocation('/groups/dashboard')}
@@ -115,18 +115,20 @@ export default function GroupManagementPage() {
                 <ArrowLeft className="w-4 h-4 mr-2" />
                 Voltar ao Dashboard
               </Button>
-              <h1 className="text-3xl font-bold text-foreground">{group.name || 'Grupo sem nome'}</h1>
-              <p className="text-muted-foreground mt-2">{group.description || 'Sem descrição'}</p>
+              <h1 className="text-2xl sm:text-3xl font-bold text-foreground">{group.name || 'Grupo sem nome'}</h1>
+              <p className="text-muted-foreground mt-2 text-sm sm:text-base">{group.description || 'Sem descrição'}</p>
               <p className="text-sm text-muted-foreground mt-1">Evento: {group.event?.name || 'N/A'}</p>
             </div>
-            <div className="flex gap-2">
-              <Button variant="outline">
+            <div className="flex flex-col sm:flex-row gap-2 w-full lg:w-auto">
+              <Button variant="outline" className="w-full sm:w-auto">
                 <Download className="w-4 h-4 mr-2" />
-                Exportar
+                <span className="hidden sm:inline">Exportar</span>
+                <span className="sm:hidden">Exportar</span>
               </Button>
-              <Button>
+              <Button className="w-full sm:w-auto">
                 <UserPlus className="w-4 h-4 mr-2" />
-                Adicionar Participante
+                <span className="hidden sm:inline">Adicionar Participante</span>
+                <span className="sm:hidden">Adicionar</span>
               </Button>
             </div>
           </div>

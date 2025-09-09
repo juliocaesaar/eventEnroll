@@ -689,9 +689,9 @@ export default function GroupParticipants({ groupId, onUpdate, eventData }: Grou
       
       {/* Modal de Detalhes do Participante */}
       <Dialog open={!!selectedParticipant} onOpenChange={() => setSelectedParticipant(null)}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto w-[95vw] sm:w-full mx-2 sm:mx-0">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
+            <DialogTitle className="flex items-center gap-2 text-lg sm:text-xl">
               <Users className="w-5 h-5" />
               Detalhes do Participante
             </DialogTitle>
@@ -804,16 +804,16 @@ export default function GroupParticipants({ groupId, onUpdate, eventData }: Grou
                       return (
                         <div className="space-y-4">
                           {/* Resumo Geral */}
-                          <div className="bg-gray-50 rounded-lg p-4">
+                          <div className="bg-muted/50 rounded-lg p-4">
                             <div className="flex items-center justify-between mb-3">
-                              <h3 className="font-semibold">Resumo do Progresso</h3>
-                              <span className="text-sm text-gray-500">
+                              <h3 className="font-semibold text-foreground">Resumo do Progresso</h3>
+                              <span className="text-sm text-muted-foreground">
                                 {progress.paid}/{progress.total} parcelas ({progress.percentage}%)
                               </span>
                             </div>
                             
                             {/* Barra de Progresso */}
-                            <div className="w-full bg-gray-200 rounded-full h-3 mb-3">
+                            <div className="w-full bg-muted rounded-full h-3 mb-3">
                               <div 
                                 className={`h-3 rounded-full transition-all duration-300 ${
                                   progress.percentage === 100 ? 'bg-green-500' : 
@@ -825,22 +825,22 @@ export default function GroupParticipants({ groupId, onUpdate, eventData }: Grou
                             
                             {/* Estatísticas */}
                             <div className="grid grid-cols-3 gap-4 text-center">
-                              <div className="bg-green-50 rounded-lg p-3">
+                              <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-3">
                                 <CheckCircle className="w-6 h-6 text-green-500 mx-auto mb-1" />
-                                <p className="text-lg font-semibold text-green-600">{progress.paid}</p>
-                                <p className="text-xs text-green-600">Pagas</p>
+                                <p className="text-lg font-semibold text-green-600 dark:text-green-400">{progress.paid}</p>
+                                <p className="text-xs text-green-600 dark:text-green-400">Pagas</p>
                               </div>
-                              <div className="bg-yellow-50 rounded-lg p-3">
+                              <div className="bg-yellow-50 dark:bg-yellow-900/20 rounded-lg p-3">
                                 <Clock className="w-6 h-6 text-yellow-500 mx-auto mb-1" />
-                                <p className="text-lg font-semibold text-yellow-600">
+                                <p className="text-lg font-semibold text-yellow-600 dark:text-yellow-400">
                                   {progress.total - progress.paid - progress.overdue}
                                 </p>
-                                <p className="text-xs text-yellow-600">Pendentes</p>
+                                <p className="text-xs text-yellow-600 dark:text-yellow-400">Pendentes</p>
                               </div>
-                              <div className="bg-red-50 rounded-lg p-3">
+                              <div className="bg-red-50 dark:bg-red-900/20 rounded-lg p-3">
                                 <AlertCircle className="w-6 h-6 text-red-500 mx-auto mb-1" />
-                                <p className="text-lg font-semibold text-red-600">{progress.overdue}</p>
-                                <p className="text-xs text-red-600">Em Atraso</p>
+                                <p className="text-lg font-semibold text-red-600 dark:text-red-400">{progress.overdue}</p>
+                                <p className="text-xs text-red-600 dark:text-red-400">Em Atraso</p>
                               </div>
                             </div>
                           </div>
