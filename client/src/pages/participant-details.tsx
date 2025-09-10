@@ -142,14 +142,15 @@ export default function ParticipantDetailsPage() {
 
   const generateQRCode = async (installment: any) => {
     try {
-      const response = await apiRequest('POST', '/api/pix/generate-qr', {
-        installmentId: installment.id,
-        amount: installment.amount
+      const response = await apiRequest('POST', '/api/payments/generate-pix-qr', {
+        registrationId: participant?.id,
+        amount: installment.amount,
+        pixUrl: `https://pix.example.com/pay/${installment.id}`
       });
       
       if (response.ok) {
         const data = await response.json();
-        setQrCodeDataUrl(data.qrCodeDataUrl);
+        setQrCodeDataUrl(data.qrCode?.qrCodeImage);
         setShowQRCode(true);
       }
     } catch (error) {
@@ -164,8 +165,11 @@ export default function ParticipantDetailsPage() {
 
   const confirmPayment = async (installment: any) => {
     try {
-      const response = await apiRequest('POST', '/api/payments/confirm', {
-        installmentId: installment.id
+      const response = await apiRequest('POST', '/api/payments/confirm-manual', {
+        registrationId: participant?.id,
+        installmentId: installment.id,
+        amount: installment.amount,
+        paymentProof: 'Manual confirmation'
       });
       
       if (response.ok) {
@@ -477,6 +481,65 @@ export default function ParticipantDetailsPage() {
           )}
         </div>
       </div>
+
+      {/* Modal de Confirmação de Pagamento */}
+      {showPaymentConfirmation && installmentToConfirm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-md w-full">
+            <h3 className="text-lg font-semibold mb-4">Confirmar Pagamento</h3>
+            <p className="text-gray-600 dark:text-gray-300 mb-4">
+              Tem certeza que deseja confirmar o pagamento da parcela de{' '}
+              <strong>{formatCurrency(installmentToConfirm.amount)}</strong>?
+            </p>
+            <div className="flex gap-3 justify-end">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setShowPaymentConfirmation(false);
+                  setInstallmentToConfirm(null);
+                }}
+              >
+                Cancelar
+              </Button>
+              <Button
+                onClick={() => confirmPayment(installmentToConfirm)}
+                className="bg-green-600 hover:bg-green-700"
+              >
+                Confirmar Pagamento
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de QR Code */}
+      {showQRCode && qrCodeDataUrl && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-sm w-full">
+            <h3 className="text-lg font-semibold mb-4">QR Code PIX</h3>
+            <div className="text-center">
+              <img 
+                src={qrCodeDataUrl} 
+                alt="QR Code PIX" 
+                className="mx-auto mb-4 border rounded"
+              />
+              <p className="text-sm text-gray-600 dark:text-gray-300 mb-4">
+                Escaneie o QR Code com seu app de pagamento
+              </p>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setShowQRCode(false);
+                  setQrCodeDataUrl('');
+                }}
+                className="w-full"
+              >
+                Fechar
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
