@@ -32,8 +32,13 @@ export function useAuthStorage() {
     return unsubscribe;
   }, []);
 
+  // Limpar credenciais
+  const clearAuth = useCallback(() => {
+    authManager.clearAuth();
+  }, []);
+
   // Validar token com o servidor (otimizado para evitar loops)
-  const validateToken = async (token: string) => {
+  const validateToken = useCallback(async (token: string) => {
     try {
       console.log('🔍 Validating token...');
       const response = await fetch('/api/auth/validate', {
@@ -45,6 +50,7 @@ export function useAuthStorage() {
       });
 
       if (!response.ok) {
+        console.error('❌ Token validation failed:', response.status, response.statusText);
         throw new Error('Token inválido');
       }
 
@@ -60,16 +66,19 @@ export function useAuthStorage() {
       clearAuth();
       setLocation('/login');
     }
-  };
+  }, [clearAuth, setLocation]);
+
+  // Validar token automaticamente se existir
+  useEffect(() => {
+    if (authState.token && !authState.isAuthenticated) {
+      console.log('🔄 Auto-validating stored token...');
+      validateToken(authState.token);
+    }
+  }, [authState.token, authState.isAuthenticated, validateToken]);
 
   // Salvar credenciais no localStorage
   const saveAuth = useCallback((user: User, token: string) => {
     authManager.saveAuth(user, token);
-  }, []);
-
-  // Limpar credenciais
-  const clearAuth = useCallback(() => {
-    authManager.clearAuth();
   }, []);
 
   // Logout

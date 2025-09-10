@@ -9,7 +9,9 @@ const PUSHER_CONFIG = {
   cluster: 'sa1',
   authEndpoint: '/api/pusher/auth',
   auth: {
-    // Removendo Content-Type customizado para deixar o Pusher.js usar o padrão
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+    },
   },
   forceTLS: true,
   enabledTransports: ['ws', 'wss'],
@@ -87,10 +89,18 @@ class GlobalPusherManager {
       return;
     }
 
+    // Obter token do localStorage
+    const token = localStorage.getItem('eventflow_token');
+    
     this.pusher = new Pusher(PUSHER_CONFIG.key, {
       cluster: PUSHER_CONFIG.cluster,
       authEndpoint: PUSHER_CONFIG.authEndpoint,
-      auth: PUSHER_CONFIG.auth,
+      auth: {
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          ...(token && { 'Authorization': `Bearer ${token}` }),
+        },
+      },
       forceTLS: PUSHER_CONFIG.forceTLS,
       enabledTransports: PUSHER_CONFIG.enabledTransports as any,
     });

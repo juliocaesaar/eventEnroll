@@ -106,7 +106,7 @@ export class EventController {
         channel_name = req.body.channel_name;
       }
       
-      const userId = req.session?.user?.id;
+      const userId = req.user?.userId || req.session?.user?.id;
 
       console.log('Socket ID:', socket_id);
       console.log('Channel Name:', channel_name);
@@ -153,7 +153,7 @@ export class EventController {
       const auth = pusher.authenticate(socket_id, channel_name, {
         id: debugUserId,
         user_info: {
-          name: req.session?.user?.name || 'User'
+          name: req.user?.email || req.session?.user?.name || 'User'
         }
       });
 

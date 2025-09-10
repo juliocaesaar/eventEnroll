@@ -138,8 +138,27 @@ app.put('/api/installments/:installmentId/mark-as-paid', isAuthenticated, EventC
   app.post('/api/cron/upcoming-reminders', CronController.sendUpcomingReminders);
   app.post('/api/cron/overdue-notifications', CronController.sendOverdueNotifications);
   
-  // Pusher authentication route
-  app.post('/api/pusher/auth', isAuthenticated, EventController.authenticatePusher);
+  // Pusher authentication route (custom middleware for Pusher)
+  app.post('/api/pusher/auth', async (req, res, next) => {
+    try {
+      // Tentar autenticação via token no header primeiro
+      const token = req.headers.authorization?.replace('Bearer ', '');
+      if (token) {
+        const { verifyToken } = await import('../config/jwt');
+        const payload = verifyToken(token);
+        if (payload) {
+          req.user = payload;
+          return next();
+        }
+      }
+      
+      // Se não há token válido, retornar erro
+      return res.status(401).json({ message: "Token não fornecido" });
+    } catch (error) {
+      console.error("Error in Pusher auth middleware:", error);
+      return res.status(401).json({ message: "Token inválido" });
+    }
+  }, EventController.authenticatePusher);
   
   // Pusher test route (development only)
   if (process.env.NODE_ENV === 'development') {

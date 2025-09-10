@@ -14,7 +14,7 @@ export const authenticateToken = (req: AuthenticatedRequest, res: Response, next
     const token = extractTokenFromHeader(req.headers.authorization);
     
     if (!token) {
-      // Log apenas em desenvolvimento ou para erros
+      // Log apenas em desenvolvimento
       if (process.env.NODE_ENV === 'development') {
         console.log('❌ No token found in request:', req.url);
       }
@@ -23,7 +23,7 @@ export const authenticateToken = (req: AuthenticatedRequest, res: Response, next
     
     const payload = verifyToken(token);
     if (!payload) {
-      // Log apenas em desenvolvimento ou para erros
+      // Log apenas em desenvolvimento
       if (process.env.NODE_ENV === 'development') {
         console.log('❌ Token verification failed for:', req.url);
       }
