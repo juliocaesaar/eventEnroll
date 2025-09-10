@@ -1072,8 +1072,8 @@ export class DatabaseStorage implements IStorage {
     // Carregar dados do grupo e evento
     const group = await db
       .select()
-      .from(groups)
-      .where(eq(groups.id, groupId))
+      .from(eventGroups)
+      .where(eq(eventGroups.id, groupId))
       .limit(1);
     
     const event = group.length > 0 ? await db

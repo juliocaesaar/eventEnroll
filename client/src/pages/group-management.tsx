@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { Search, Users, DollarSign, Calendar, ArrowLeft, UserPlus, Shield } from 'lucide-react';
@@ -199,6 +199,9 @@ export default function GroupManagementPage() {
                 <DialogContent className="max-w-md">
                   <DialogHeader>
                     <DialogTitle>Inscrição de Participante</DialogTitle>
+                    <DialogDescription>
+                      Preencha os dados do participante para realizar a inscrição no grupo.
+                    </DialogDescription>
                   </DialogHeader>
                   <div className="space-y-4">
                     <div className="grid grid-cols-2 gap-4">
