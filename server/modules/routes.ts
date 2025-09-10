@@ -8,6 +8,7 @@ import { DashboardController } from "../controllers/dashboardController";
 import { PlanController } from "../controllers/planController";
 import { NotificationController } from "../controllers/notificationController";
 import { GroupController } from "../controllers/groupController";
+import { EventOrganizerController } from "../controllers/eventOrganizerController";
 import { PaymentController } from "../controllers/paymentController";
 import { PixController } from "../controllers/pixController";
 import { CronController } from "../controllers/cronController";
@@ -93,6 +94,12 @@ app.put('/api/installments/:installmentId/mark-as-paid', isAuthenticated, EventC
   // Group routes
   app.post('/api/events/:eventId/groups', isAuthenticated, GroupController.createGroup);
   app.get('/api/events/:eventId/groups', isAuthenticated, GroupController.getEventGroups);
+
+  // Event Organizer routes
+  app.get('/api/events/:eventId/organizers', isAuthenticated, EventOrganizerController.getEventOrganizers);
+  app.post('/api/events/:eventId/organizers', isAuthenticated, EventOrganizerController.addEventOrganizer);
+  app.put('/api/event-organizers/:organizerId', isAuthenticated, EventOrganizerController.updateEventOrganizer);
+  app.delete('/api/event-organizers/:organizerId', isAuthenticated, EventOrganizerController.removeEventOrganizer);
   
   // Group Dashboard routes (must be before parameterized routes)
   app.get('/api/groups/dashboard', isAuthenticated, requireGroupDashboardAccess, GroupController.getUserGroupDashboard);

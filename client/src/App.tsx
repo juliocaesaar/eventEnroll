@@ -41,6 +41,7 @@ import RegistrationConfirmation from "@/pages/registration-confirmation";
 import EventGroups from "@/pages/event-groups";
 import EventPayments from "@/pages/event-payments";
 import EventParticipants from "@/pages/event-participants";
+import EventManagement from "@/pages/event-management";
 import GroupPayments from "@/pages/group-payments";
 import GroupDashboard from "@/pages/group-dashboard";
 import GroupManagement from "@/pages/group-management";
@@ -260,6 +261,7 @@ function Router() {
           <Route path="/events/:eventId/groups" component={EventGroupsPage} />
           <Route path="/events/:eventId/payments" component={EventPaymentsPage} />
           <Route path="/events/:eventId/participants-new" component={EventParticipantsPage} />
+          <Route path="/events/:eventId/manage" component={EventManagement} />
           <Route path="/group-payments" component={GroupPaymentsPage} />
           <Route path="/groups/dashboard" component={GroupDashboardPage} />
           <Route path="/groups/:groupId/manage" component={GroupManagementPage} />

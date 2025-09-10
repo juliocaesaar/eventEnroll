@@ -109,6 +109,13 @@ export default function EventDetails() {
                 💰 Pagamentos
               </Button>
               <Button 
+                variant="outline"
+                onClick={() => setLocation(`/events/${event?.id}/manage`)} 
+                data-testid="button-manage-event"
+              >
+                ⚙️ Gerenciar Evento
+              </Button>
+              <Button 
                 onClick={() => setLocation(`/editor?eventId=${event?.id}`)} 
                 data-testid="button-edit-event"
               >

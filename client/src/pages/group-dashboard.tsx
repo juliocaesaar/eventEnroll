@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useLocation } from 'wouter';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
@@ -13,15 +13,29 @@ import {
   TrendingUp,
   UserCheck,
   Clock,
-  AlertCircle
+  AlertCircle,
+  RefreshCw
 } from 'lucide-react';
 
 export default function GroupDashboard() {
   const [, setLocation] = useLocation();
   const { user, isAuthenticated } = useAuth();
   const [selectedGroup, setSelectedGroup] = useState<string | null>(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   
   const { data: dashboardData, isLoading, error, refetch } = useGroupDashboard();
+
+  // Auto-refresh a cada 30 segundos
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setIsRefreshing(true);
+      refetch().finally(() => {
+        setIsRefreshing(false);
+      });
+    }, 30000); // 30 segundos
+
+    return () => clearInterval(interval);
+  }, [refetch]);
 
   const handleGroupClick = (groupId: string) => {
     setSelectedGroup(groupId);
@@ -112,15 +126,36 @@ export default function GroupDashboard() {
           <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Dashboard de Grupos</h1>
           <p className="text-muted-foreground mt-1 text-sm sm:text-base">
             Gerencie os grupos que você administra
+            {isRefreshing && (
+              <span className="ml-2 text-xs text-blue-600 dark:text-blue-400">
+                <RefreshCw className="w-3 h-3 inline animate-spin mr-1" />
+                Atualizando...
+              </span>
+            )}
           </p>
         </div>
-        <Button 
-          onClick={() => setLocation('/events')}
-          className="w-full sm:w-auto"
-        >
-          <Settings className="w-4 h-4 mr-2" />
-          Gerenciar Eventos
-        </Button>
+        <div className="flex gap-2">
+          <Button 
+            onClick={() => {
+              setIsRefreshing(true);
+              refetch().finally(() => setIsRefreshing(false));
+            }}
+            variant="outline"
+            size="sm"
+            disabled={isRefreshing}
+            className="w-full sm:w-auto"
+          >
+            <RefreshCw className={`w-4 h-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
+            Atualizar
+          </Button>
+          <Button 
+            onClick={() => setLocation('/events')}
+            className="w-full sm:w-auto"
+          >
+            <Settings className="w-4 h-4 mr-2" />
+            Gerenciar Eventos
+          </Button>
+        </div>
       </div>
 
       {/* Stats Cards */}

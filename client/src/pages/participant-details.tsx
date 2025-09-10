@@ -27,8 +27,8 @@ interface Participant {
   email: string;
   phone?: string;
   status: 'pending' | 'confirmed' | 'cancelled';
-  amountPaid: number;
-  totalAmount: number;
+  amountPaid: number | string;
+  totalAmount: number | string;
   registrationDate: string;
   paymentStatus: 'pending' | 'partial' | 'paid' | 'overdue';
   installments?: {
@@ -127,6 +127,28 @@ export default function ParticipantDetailsPage() {
     const nextInstallment = installments.find(i => i.status === 'pending' || i.status === 'overdue');
     
     return { total, paid, overdue, percentage, nextInstallment };
+  };
+
+  // Função para calcular valores reais baseados nas parcelas
+  const calculatePaymentAmounts = (participant: Participant) => {
+    if (!participant.installments || participant.installments.length === 0) {
+      return {
+        amountPaid: Number(participant.amountPaid || 0),
+        totalAmount: Number(participant.totalAmount || 0)
+      };
+    }
+
+    const totalAmount = participant.installments.reduce((sum: number, installment: any) => 
+      sum + Number(installment.amount || 0), 0
+    );
+    
+    const amountPaid = participant.installments
+      .filter((installment: any) => installment.status === 'paid')
+      .reduce((sum: number, installment: any) => 
+        sum + Number(installment.amount || 0), 0
+      );
+
+    return { amountPaid, totalAmount };
   };
 
   const formatCurrency = (amount: number) => {
@@ -301,19 +323,19 @@ export default function ParticipantDetailsPage() {
                 <div>
                   <label className="text-sm font-medium text-muted-foreground">Valor Total</label>
                   <p className="text-lg font-semibold text-green-600 dark:text-green-400">
-                    {formatCurrency(participant.totalAmount)}
+                    {formatCurrency(calculatePaymentAmounts(participant).totalAmount)}
                   </p>
                 </div>
                 <div>
                   <label className="text-sm font-medium text-muted-foreground">Valor Pago</label>
                   <p className="text-lg font-semibold text-blue-600 dark:text-blue-400">
-                    {formatCurrency(participant.amountPaid)}
+                    {formatCurrency(calculatePaymentAmounts(participant).amountPaid)}
                   </p>
                 </div>
                 <div>
                   <label className="text-sm font-medium text-muted-foreground">Saldo Restante</label>
                   <p className="text-lg font-semibold text-orange-600 dark:text-orange-400">
-                    {formatCurrency(participant.totalAmount - participant.amountPaid)}
+                    {formatCurrency(calculatePaymentAmounts(participant).totalAmount - calculatePaymentAmounts(participant).amountPaid)}
                   </p>
                 </div>
               </CardContent>
@@ -331,7 +353,7 @@ export default function ParticipantDetailsPage() {
               </CardHeader>
               <CardContent>
                 {(() => {
-                  const progress = getInstallmentProgress(participant.installments);
+                  const progress = getInstallmentProgress(participant.installments || []);
                   return (
                     <div className="space-y-6">
                       {/* Resumo Geral */}
@@ -408,7 +430,7 @@ export default function ParticipantDetailsPage() {
                               
                               <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-2">
                                 {(() => {
-                                  const progress = getInstallmentProgress(participant.installments);
+                                  const progress = getInstallmentProgress(participant.installments || []);
                                   const isNextInstallment = progress.nextInstallment?.id === installment.id;
                                   
                                   if (installment.status === 'paid') {

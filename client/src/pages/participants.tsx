@@ -244,12 +244,14 @@ export default function Participants() {
         description: result.message || 'A parcela foi confirmada como paga com sucesso.',
       });
       
-      // Recarregar dados primeiro
-      await refetchRegistrations();
-      
-      // Fechar modal após recarregar
+      // Fechar modal primeiro
       setShowPaymentConfirmation(false);
       setInstallmentToConfirm(null);
+      
+      // Recarregar a página para atualizar todos os valores
+      setTimeout(() => {
+        window.location.reload();
+      }, 1000); // Aguarda 1 segundo para o toast aparecer
       
     } catch (error) {
       console.error('Erro ao marcar parcela como paga:', error);

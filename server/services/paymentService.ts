@@ -106,11 +106,17 @@ export class PaymentService {
     count: number,
     interval: string
   ): Date[] {
+    console.log('=== CALCULATE DUE DATES ===');
+    console.log('firstDate:', firstDate);
+    console.log('count:', count);
+    console.log('interval:', interval);
+    
     const dates: Date[] = [];
     const currentDate = new Date(firstDate);
 
     for (let i = 0; i < count; i++) {
       dates.push(new Date(currentDate));
+      console.log(`Parcela ${i + 1}: ${currentDate.toISOString()}`);
       
       switch (interval) {
         case 'weekly':
@@ -126,6 +132,7 @@ export class PaymentService {
       }
     }
 
+    console.log('Total dates calculated:', dates.length);
     return dates;
   }
 
@@ -188,12 +195,23 @@ export class PaymentService {
     registration: Registration,
     plan: EventPaymentPlan
   ): Promise<PaymentInstallment[]> {
+    console.log('=== CREATE INSTALLMENTS FOR REGISTRATION ===');
+    console.log('Registration ID:', registration.id);
+    console.log('Plan ID:', plan.id);
+    console.log('Plan installmentCount:', plan.installmentCount);
+    console.log('Plan installmentInterval:', plan.installmentInterval);
+    
     const totalAmount = parseFloat(registration.totalAmount || '0');
+    console.log('Total amount:', totalAmount);
+    
     const calculation = this.calculateInstallments(plan, totalAmount, new Date(registration.createdAt));
+    console.log('Calculation installments count:', calculation.installments.length);
 
     const installments: PaymentInstallment[] = [];
 
     for (const installmentData of calculation.installments) {
+      console.log(`Creating installment ${installmentData.installmentNumber} for date ${installmentData.dueDate}`);
+      
       const installment = await storage.createPaymentInstallment({
         registrationId: registration.id,
         planId: plan.id,
@@ -207,6 +225,7 @@ export class PaymentService {
       installments.push(installment);
     }
 
+    console.log('Total installments created:', installments.length);
     return installments;
   }
 

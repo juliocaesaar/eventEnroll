@@ -982,14 +982,23 @@ export class EventController {
         return res.status(404).json({ message: "Event not found" });
       }
       
-      const { name, email, phone, document, tickets } = req.body;
+      const { name, firstName, lastName, email, phone, document, tickets, groupId, paymentType } = req.body;
       
-      if (!name || !email || !tickets || tickets.length === 0) {
+      // Suportar tanto 'name' quanto 'firstName' + 'lastName'
+      const fullName = name || (firstName && lastName ? `${firstName} ${lastName}` : null);
+      const first = firstName || (name ? name.split(' ')[0] : null);
+      const last = lastName || (name ? name.split(' ').slice(1).join(' ') : '');
+      
+      if (!fullName || !email || !tickets || tickets.length === 0) {
         return res.status(400).json({ message: "Missing required fields" });
       }
       
       const registrations = [];
       let totalAmount = 0;
+      
+      console.log('=== DEBUG REGISTRATION ===');
+      console.log('Payment type:', paymentType);
+      console.log('Tickets:', tickets);
       
       // Process each ticket type and quantity
       for (const ticketRequest of tickets) {
@@ -998,7 +1007,10 @@ export class EventController {
           return res.status(404).json({ message: `Ticket not found: ${ticketRequest.ticketId}` });
         }
         
-        totalAmount += parseFloat(ticket.price || '0') * ticketRequest.quantity;
+        const ticketAmount = parseFloat(ticket.price || '0') * ticketRequest.quantity;
+        totalAmount += ticketAmount;
+        
+        console.log('Ticket:', ticket.name, 'Price:', ticket.price, 'Quantity:', ticketRequest.quantity, 'Amount:', ticketAmount);
         
         // Create registration for each ticket quantity
         for (let i = 0; i < ticketRequest.quantity; i++) {
@@ -1006,18 +1018,82 @@ export class EventController {
             eventId: event.id,
             ticketId: ticket.id,
             email: email,
-            firstName: name.split(' ')[0] || name,
-            lastName: name.split(' ').slice(1).join(' ') || '',
+            firstName: first,
+            lastName: last,
             phoneNumber: phone,
+            groupId: groupId || null,
             customFields: { document: document },
             status: totalAmount > 0 ? 'pending_payment' : 'confirmed',
             paymentStatus: totalAmount > 0 ? 'pending' : 'paid', // Definir baseado no valor
-            amountPaid: String(parseFloat(ticket.price || '0')),
+            amountPaid: '0', // Sempre começar com 0 para pagamentos parcelados
+            totalAmount: totalAmount.toString(), // Salvar o valor total
             currency: 'BRL',
           });
           registrations.push(registration);
+          
+          // Se for pagamento parcelado, criar as parcelas
+          if (paymentType === 'installments' && totalAmount > 0) {
+            // Calcular número de parcelas baseado na data do evento
+            const today = new Date();
+            const eventDate = event.startDate ? new Date(event.startDate) : new Date(today.getTime() + (6 * 30 * 24 * 60 * 60 * 1000)); // 6 meses no futuro se não houver data
+            
+            // Calcular meses entre hoje e o evento
+            const monthsUntilEvent = (eventDate.getFullYear() - today.getFullYear()) * 12 + 
+                                   (eventDate.getMonth() - today.getMonth());
+            
+            // Garantir pelo menos 1 parcela e no máximo 12
+            const installmentCount = Math.max(1, Math.min(monthsUntilEvent, 12));
+            
+            console.log('=== DEBUG PARCELAS ===');
+            console.log('Event ID:', event.id);
+            console.log('Event startDate:', event.startDate);
+            console.log('Today:', today.toISOString());
+            console.log('Event date:', eventDate.toISOString());
+            console.log('Months until event:', monthsUntilEvent);
+            console.log('Installment count:', installmentCount);
+            
+            // Buscar o plano de pagamento padrão do evento
+            let paymentPlan = await storage.getDefaultEventPaymentPlan(event.id);
+            
+            // Se não houver plano padrão ou se o plano existente tem número diferente de parcelas, criar/atualizar
+            if (!paymentPlan || paymentPlan.installmentCount !== installmentCount) {
+              if (paymentPlan) {
+                console.log('Atualizando plano existente de', paymentPlan.installmentCount, 'para', installmentCount, 'parcelas');
+                // Atualizar plano existente com o número correto de parcelas
+                paymentPlan = await storage.updateEventPaymentPlan(paymentPlan.id, {
+                  installmentCount: installmentCount,
+                  description: `Plano de pagamento padrão com ${installmentCount} parcelas até o evento`,
+                });
+                console.log('Plano atualizado com sucesso. Novo installmentCount:', paymentPlan.installmentCount);
+              } else {
+                console.log('Criando novo plano com', installmentCount, 'parcelas');
+                // Criar novo plano com o número correto de parcelas
+                paymentPlan = await storage.createEventPaymentPlan({
+                  eventId: event.id,
+                  name: 'Plano Padrão',
+                  description: `Plano de pagamento padrão com ${installmentCount} parcelas até o evento`,
+                  installmentCount: installmentCount,
+                  installmentInterval: 'monthly',
+                  isDefault: true,
+                  discountPolicy: {},
+                  lateFeePolicy: {},
+                });
+                console.log('Novo plano criado com sucesso. installmentCount:', paymentPlan.installmentCount);
+              }
+            } else {
+              console.log('Usando plano existente com', paymentPlan.installmentCount, 'parcelas (correto)');
+            }
+            
+            // Usar o serviço de pagamento para criar as parcelas
+            const { PaymentService } = await import('../services/paymentService');
+            await PaymentService.createInstallmentsForRegistration(registration, paymentPlan);
+          }
         }
       }
+      
+      console.log('Total amount calculated:', totalAmount);
+      console.log('Payment type:', paymentType);
+      console.log('Will create installments?', paymentType === 'installments' && totalAmount > 0);
       
       // For paid events, create mock payment (in production, integrate with Asaas)
       // Mock payment flow - in real implementation, create Asaas payment and return URL

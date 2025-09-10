@@ -3,8 +3,9 @@ import { useLocation, useParams } from 'wouter';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Checkbox } from '../components/ui/checkbox';
-import { AlertTriangle, Shield, Users, CreditCard } from 'lucide-react';
+import { AlertTriangle, Shield, Users, CreditCard, Calendar, DollarSign } from 'lucide-react';
 import { useToast } from '../hooks/use-toast';
+import { useQuery } from '@tanstack/react-query';
 
 interface RegistrationData {
   name: string;
@@ -13,6 +14,24 @@ interface RegistrationData {
   groupId?: string;
   tickets: Array<{ ticketId: string; quantity: number }>;
   paymentType: 'installments' | 'cash';
+}
+
+interface EventPaymentPlan {
+  id: string;
+  name: string;
+  description?: string;
+  installmentCount: number;
+  installmentInterval: string;
+  firstInstallmentDate?: string;
+  lastInstallmentDate?: string;
+  isDefault: boolean;
+}
+
+interface InstallmentInfo {
+  installmentNumber: number;
+  dueDate: Date;
+  originalAmount: number;
+  remainingAmount: number;
 }
 
 export default function RegistrationTerms() {
@@ -25,6 +44,88 @@ export default function RegistrationTerms() {
 
   // Recuperar dados da inscrição do localStorage ou URL params
   const [registrationData, setRegistrationData] = useState<RegistrationData | null>(null);
+
+  // Fetch event data
+  const { data: event } = useQuery({
+    queryKey: [`/api/public/events/${params.slug}`],
+  });
+
+  // Fetch tickets for the event
+  const { data: tickets = [] } = useQuery({
+    queryKey: [`/api/public/events/${params.slug}/tickets`],
+    enabled: !!event,
+  });
+
+  // Fetch payment plans for the event
+  const { data: paymentPlans = [] } = useQuery({
+    queryKey: [`/api/events/${(event as any)?.id}/payment-plans`],
+    enabled: !!event,
+  }) as { data: EventPaymentPlan[] };
+
+  // Função para calcular o valor total dos tickets
+  const calculateTotalAmount = () => {
+    if (!registrationData || !tickets) return 0;
+    
+    let total = 0;
+    registrationData.tickets.forEach(({ ticketId, quantity }) => {
+      const ticket = (tickets as any[]).find((t: any) => t.id === ticketId);
+      if (ticket) {
+        total += parseFloat(ticket.price || 0) * quantity;
+      }
+    });
+    
+    // Aplicar desconto de R$ 20,00 se for pagamento à vista
+    if (registrationData.paymentType === 'cash') {
+      total = Math.max(0, total - 20);
+    }
+    
+    return total;
+  };
+
+  // Função para calcular as parcelas
+  const calculateInstallments = (): InstallmentInfo[] => {
+    if (!registrationData || registrationData.paymentType === 'cash') return [];
+    
+    const totalAmount = calculateTotalAmount();
+    const defaultPlan = paymentPlans.find(plan => plan.isDefault) || paymentPlans[0];
+    
+    if (!defaultPlan) return [];
+    
+    const installmentAmount = totalAmount / defaultPlan.installmentCount;
+    const installments: InstallmentInfo[] = [];
+    
+    // Calcular datas das parcelas
+    const firstDate = defaultPlan.firstInstallmentDate 
+      ? new Date(defaultPlan.firstInstallmentDate)
+      : new Date();
+    
+    for (let i = 0; i < defaultPlan.installmentCount; i++) {
+      const dueDate = new Date(firstDate);
+      
+      // Adicionar intervalo baseado no tipo
+      switch (defaultPlan.installmentInterval) {
+        case 'weekly':
+          dueDate.setDate(dueDate.getDate() + (i * 7));
+          break;
+        case 'biweekly':
+          dueDate.setDate(dueDate.getDate() + (i * 14));
+          break;
+        case 'monthly':
+        default:
+          dueDate.setMonth(dueDate.getMonth() + i);
+          break;
+      }
+      
+      installments.push({
+        installmentNumber: i + 1,
+        dueDate,
+        originalAmount: Math.round(installmentAmount * 100) / 100,
+        remainingAmount: Math.round(installmentAmount * 100) / 100,
+      });
+    }
+    
+    return installments;
+  };
 
   React.useEffect(() => {
     // Tentar recuperar dados do localStorage
@@ -166,6 +267,86 @@ export default function RegistrationTerms() {
                   </p>
                 </div>
               </div>
+            </CardContent>
+          </Card>
+
+          {/* Informações de Pagamento */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2">
+                <DollarSign className="w-5 h-5" />
+                <span>Informações de Pagamento</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg">
+                <div className="flex justify-between items-center mb-2">
+                  <span className="text-lg font-semibold">Valor Total:</span>
+                  <span className="text-2xl font-bold text-primary">
+                    R$ {calculateTotalAmount().toFixed(2)}
+                  </span>
+                </div>
+                
+                {registrationData.paymentType === 'cash' && (
+                  <div className="text-sm text-green-600 dark:text-green-400">
+                    ✓ Desconto de R$ 20,00 aplicado para pagamento à vista
+                  </div>
+                )}
+              </div>
+
+              {registrationData.paymentType === 'installments' && calculateInstallments().length > 0 && (
+                <div className="space-y-3">
+                  <div className="flex items-center space-x-2">
+                    <Calendar className="w-4 h-4" />
+                    <span className="font-medium">Cronograma de Pagamento:</span>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    {calculateInstallments().map((installment) => (
+                      <div key={installment.installmentNumber} className="flex justify-between items-center p-3 bg-white dark:bg-gray-700 rounded-lg border">
+                        <div className="flex items-center space-x-3">
+                          <div className="w-8 h-8 bg-primary text-white rounded-full flex items-center justify-center text-sm font-semibold">
+                            {installment.installmentNumber}
+                          </div>
+                          <div>
+                            <p className="font-medium">
+                              {installment.dueDate.toLocaleDateString('pt-BR', {
+                                day: '2-digit',
+                                month: '2-digit',
+                                year: 'numeric'
+                              })}
+                            </p>
+                            <p className="text-sm text-gray-500">
+                              {installment.dueDate.toLocaleDateString('pt-BR', {
+                                weekday: 'long'
+                              })}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <p className="font-semibold text-lg">
+                            R$ {installment.originalAmount.toFixed(2)}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  
+                  <div className="text-sm text-gray-600 dark:text-gray-400 bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg">
+                    <p><strong>Total de parcelas:</strong> {calculateInstallments().length}</p>
+                    <p><strong>Valor por parcela:</strong> R$ {calculateInstallments()[0]?.originalAmount.toFixed(2) || '0.00'}</p>
+                    <p><strong>Intervalo:</strong> {paymentPlans.find(plan => plan.isDefault)?.installmentInterval === 'monthly' ? 'Mensal' : 
+                      paymentPlans.find(plan => plan.isDefault)?.installmentInterval === 'weekly' ? 'Semanal' : 
+                      paymentPlans.find(plan => plan.isDefault)?.installmentInterval === 'biweekly' ? 'Quinzenal' : 'Mensal'}</p>
+                  </div>
+                </div>
+              )}
+
+              {registrationData.paymentType === 'installments' && calculateInstallments().length === 0 && (
+                <div className="text-center py-4 text-gray-500 dark:text-gray-400">
+                  <p>Carregando informações de parcelas...</p>
+                </div>
+              )}
             </CardContent>
           </Card>
 

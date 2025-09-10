@@ -181,6 +181,18 @@ export const groupManagers = pgTable("group_managers", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+// Event Organizers table
+export const eventOrganizers = pgTable("event_organizers", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  eventId: varchar("event_id").references(() => events.id).notNull(),
+  userId: varchar("user_id").references(() => users.id).notNull(),
+  role: varchar("role", { length: 20 }).default('organizer'), // organizer, assistant, viewer
+  permissions: jsonb("permissions").default('{}'),
+  assignedAt: timestamp("assigned_at").defaultNow(),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 // Group Permissions table
 export const groupPermissions = pgTable("group_permissions", {
   id: varchar("id").primaryKey(),
@@ -559,6 +571,9 @@ export type InsertEventGroup = typeof eventGroups.$inferInsert;
 
 export type GroupManager = typeof groupManagers.$inferSelect;
 export type InsertGroupManager = typeof groupManagers.$inferInsert;
+
+export type EventOrganizer = typeof eventOrganizers.$inferSelect;
+export type InsertEventOrganizer = typeof eventOrganizers.$inferInsert;
 
 export type GroupPermission = typeof groupPermissions.$inferSelect;
 export type InsertGroupPermission = typeof groupPermissions.$inferInsert;

@@ -329,6 +329,7 @@ export class GroupController {
 
       // Se solicitado, incluir dados do evento e tickets
       if (includeEventData && group.eventId) {
+        
         const [event, tickets] = await Promise.all([
           storage.getEventById(group.eventId),
           storage.getEventTickets(group.eventId)

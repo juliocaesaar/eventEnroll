@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { Search, Users, DollarSign, Calendar, ArrowLeft, UserPlus, Shield } from 'lucide-react';
+import { Search, Users, DollarSign, Calendar, ArrowLeft, UserPlus, Shield, RefreshCw } from 'lucide-react';
 import { apiRequest } from '@/lib/queryClient';
 import GroupManagers from '@/components/group/GroupManagers';
 import GroupParticipants from '@/components/group/GroupParticipants';
@@ -47,6 +47,7 @@ export default function GroupManagementPage() {
   const { isAuthenticated, isLoading: authLoading } = useAuth();
   const { toast } = useToast();
   const [showRegistrationModal, setShowRegistrationModal] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [registrationData, setRegistrationData] = useState({
     firstName: '',
     lastName: '',
@@ -58,6 +59,18 @@ export default function GroupManagementPage() {
 
   // Usar o hook otimizado para carregar dados
   const { group, event: eventData, tickets, isLoading, isError, error, refetch } = useGroupData(groupId);
+
+  // Auto-refresh a cada 30 segundos
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setIsRefreshing(true);
+      refetch().finally(() => {
+        setIsRefreshing(false);
+      });
+    }, 30000); // 30 segundos
+
+    return () => clearInterval(interval);
+  }, [refetch]);
 
   useEffect(() => {
     // Verificar autenticação antes de carregar dados
@@ -117,7 +130,16 @@ export default function GroupManagementPage() {
         });
         
         setShowRegistrationModal(false);
-        refetch(); // Recarregar dados do grupo usando o hook otimizado
+        
+        // Forçar refresh imediato dos dados
+        setIsRefreshing(true);
+        await refetch();
+        setIsRefreshing(false);
+        
+        // Recarregar a página após 1 segundo para garantir que tudo seja atualizado
+        setTimeout(() => {
+          window.location.reload();
+        }, 1000);
       } else {
         toast({
           title: "Erro na inscrição",
@@ -184,10 +206,31 @@ export default function GroupManagementPage() {
                 Voltar ao Dashboard
               </Button>
               <h1 className="text-2xl sm:text-3xl font-bold text-foreground">{group.name || 'Grupo sem nome'}</h1>
-              <p className="text-muted-foreground mt-2 text-sm sm:text-base">{group.description || 'Sem descrição'}</p>
-              <p className="text-sm text-muted-foreground mt-1">Evento: {group.event?.name || 'N/A'}</p>
+              <p className="text-muted-foreground mt-2 text-sm sm:text-base">
+                {group.description || 'Sem descrição'}
+                {isRefreshing && (
+                  <span className="ml-2 text-xs text-blue-600 dark:text-blue-400">
+                    <RefreshCw className="w-3 h-3 inline animate-spin mr-1" />
+                    Atualizando...
+                  </span>
+                )}
+              </p>
+              <p className="text-sm text-muted-foreground mt-1">Evento: {eventData?.title || 'N/A'}</p>
             </div>
             <div className="flex flex-col sm:flex-row gap-2 w-full lg:w-auto">
+              <Button 
+                onClick={() => {
+                  setIsRefreshing(true);
+                  refetch().finally(() => setIsRefreshing(false));
+                }}
+                variant="outline"
+                size="sm"
+                disabled={isRefreshing}
+                className="w-full sm:w-auto"
+              >
+                <RefreshCw className={`w-4 h-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
+                Atualizar
+              </Button>
               <Dialog open={showRegistrationModal} onOpenChange={setShowRegistrationModal}>
                 <DialogTrigger asChild>
                   <Button className="w-full sm:w-auto">

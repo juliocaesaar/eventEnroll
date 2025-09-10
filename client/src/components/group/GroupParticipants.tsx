@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
-import { Search, Users, Mail, Phone, Calendar, DollarSign, Filter, Download, UserCheck, UserX, Clock, CheckCircle, AlertCircle, Eye, Share2, QrCode, MessageCircle } from 'lucide-react';
+import { Search, Users, Mail, Phone, Calendar, DollarSign, Filter, Download, UserCheck, UserX, Clock, CheckCircle, AlertCircle, Eye, Share2, QrCode, MessageCircle, RefreshCw } from 'lucide-react';
 
 interface Participant {
   id: string;
@@ -17,8 +17,8 @@ interface Participant {
   email: string;
   phone?: string;
   status: 'pending' | 'confirmed' | 'cancelled';
-  amountPaid: number;
-  totalAmount: number;
+  amountPaid: number | string;
+  totalAmount: number | string;
   registrationDate: string;
   paymentStatus: 'pending' | 'partial' | 'paid' | 'overdue';
   installments?: {
@@ -44,6 +44,7 @@ export default function GroupParticipants({ groupId, onUpdate, eventData }: Grou
   const [participants, setParticipants] = useState<Participant[]>([]);
   const [filteredParticipants, setFilteredParticipants] = useState<Participant[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [paymentFilter, setPaymentFilter] = useState<string>('all');
@@ -78,6 +79,18 @@ export default function GroupParticipants({ groupId, onUpdate, eventData }: Grou
   useEffect(() => {
     filterParticipants();
   }, [participants, searchTerm, statusFilter, paymentFilter]);
+
+  // Auto-refresh a cada 30 segundos
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setIsRefreshing(true);
+      loadParticipants().finally(() => {
+        setIsRefreshing(false);
+      });
+    }, 30000); // 30 segundos
+
+    return () => clearInterval(interval);
+  }, [groupId]);
 
   const loadParticipants = async () => {
     try {
@@ -300,14 +313,15 @@ export default function GroupParticipants({ groupId, onUpdate, eventData }: Grou
         description: result.message || 'A parcela foi confirmada como paga com sucesso.',
       });
       
-      // Recarregar dados primeiro
-      if (onUpdate) {
-        await onUpdate();
-      }
-      
-      // Fechar modal após recarregar
+      // Fechar modal primeiro
       setShowPaymentConfirmation(false);
       setInstallmentToConfirm(null);
+      
+      // Recarregar a página para atualizar todos os valores
+      setTimeout(() => {
+        window.location.reload();
+      }, 1000); // Aguarda 1 segundo para o toast aparecer
+      
     } catch (error) {
       console.error('Erro ao marcar parcela como paga:', error);
       toast({
@@ -548,11 +562,31 @@ export default function GroupParticipants({ groupId, onUpdate, eventData }: Grou
           <CardTitle className="flex items-center gap-2">
             <Users className="w-5 h-5" />
             Participantes do Grupo ({filteredParticipants.length})
+            {isRefreshing && (
+              <span className="ml-2 text-xs text-blue-600 dark:text-blue-400">
+                <RefreshCw className="w-3 h-3 inline animate-spin mr-1" />
+                Atualizando...
+              </span>
+            )}
           </CardTitle>
-          <Button variant="outline" size="sm" onClick={exportParticipants}>
-            <Download className="w-4 h-4 mr-2" />
-            Exportar
-          </Button>
+          <div className="flex gap-2">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => {
+                setIsRefreshing(true);
+                loadParticipants().finally(() => setIsRefreshing(false));
+              }}
+              disabled={isRefreshing}
+            >
+              <RefreshCw className={`w-4 h-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
+              Atualizar
+            </Button>
+            <Button variant="outline" size="sm" onClick={exportParticipants}>
+              <Download className="w-4 h-4 mr-2" />
+              Exportar
+            </Button>
+          </div>
         </div>
       </CardHeader>
       <CardContent>
@@ -800,7 +834,7 @@ export default function GroupParticipants({ groupId, onUpdate, eventData }: Grou
                     <div>
                       <label className="text-sm font-medium text-gray-500">Valor Pago</label>
                       <p className="text-lg font-semibold text-green-600">
-                        R$ {Number(selectedParticipant.amountPaid || 0).toFixed(2)}
+                        R$ {calculatePaymentAmounts(selectedParticipant).amountPaid.toFixed(2)}
                       </p>
                     </div>
                   </CardContent>
