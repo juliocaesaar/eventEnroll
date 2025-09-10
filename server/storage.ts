@@ -1080,8 +1080,7 @@ export class DatabaseStorage implements IStorage {
           .where(
             and(
               eq(paymentTransactions.installmentId, installment.id),
-              eq(paymentTransactions.type, 'payment'),
-              eq(paymentTransactions.status, 'completed')
+              eq(paymentTransactions.type, 'payment')
             )
           );
         
