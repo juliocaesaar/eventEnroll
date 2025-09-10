@@ -19,12 +19,19 @@ export function generateToken(payload: JWTPayload): string {
 
 export function verifyToken(token: string): JWTPayload | null {
   try {
-    console.log('🔍 Verifying token with secret:', JWT_SECRET.substring(0, 10) + '...');
     const payload = jwt.verify(token, JWT_SECRET) as JWTPayload;
-    console.log('✅ Token verification successful:', payload);
+    
+    // Log apenas em desenvolvimento
+    if (process.env.NODE_ENV === 'development') {
+      console.log('✅ Token verification successful for user:', payload.userId);
+    }
+    
     return payload;
   } catch (error) {
-    console.error('❌ Token verification failed:', error);
+    // Log apenas em desenvolvimento ou para erros específicos
+    if (process.env.NODE_ENV === 'development') {
+      console.error('❌ Token verification failed:', error);
+    }
     return null;
   }
 }

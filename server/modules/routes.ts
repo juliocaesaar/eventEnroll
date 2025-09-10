@@ -125,7 +125,10 @@ app.put('/api/installments/:installmentId/mark-as-paid', isAuthenticated, EventC
   app.get('/api/payments/status/:registrationId', PixController.checkPaymentStatus);
 
   // PIX Test routes (temporary for testing)
-  app.use('/api/pix-test', pixTestRoutes);
+  // PIX test routes (admin only - development only)
+  if (process.env.NODE_ENV === 'development') {
+    app.use('/api/pix-test', pixTestRoutes);
+  }
   
   // PIX Webhook routes
   app.use('/api/pix-webhook', pixWebhookRoutes);
@@ -138,109 +141,11 @@ app.put('/api/installments/:installmentId/mark-as-paid', isAuthenticated, EventC
   // Pusher authentication route
   app.post('/api/pusher/auth', isAuthenticated, EventController.authenticatePusher);
   
-  // Pusher test route
-  app.post('/api/pusher/test', isAuthenticated, EventController.testPusher);
+  // Pusher test route (development only)
+  if (process.env.NODE_ENV === 'development') {
+    app.post('/api/pusher/test', isAuthenticated, EventController.testPusher);
+  }
   
-  // Debug Pusher auth route (without authentication for testing)
-  app.post('/api/pusher/auth-debug', async (req, res) => {
-    // Interceptar o raw body antes de qualquer parsing
-    let rawBody = '';
-    req.on('data', (chunk) => {
-      rawBody += chunk.toString();
-    });
-    
-    req.on('end', async () => {
-      console.log('=== RAW BODY INTERCEPTED ===');
-      console.log('Raw Body String:', rawBody);
-      
-      // Parse manual do raw body
-      const params = new URLSearchParams(rawBody);
-      const socket_id = params.get('socket_id');
-      const channel_name = params.get('channel_name');
-      
-      console.log('Parsed socket_id:', socket_id);
-      console.log('Parsed channel_name:', channel_name);
-      
-      if (!socket_id || !channel_name) {
-        console.log('❌ Missing socket_id or channel_name in raw body');
-        return res.status(400).json({ message: "Missing socket_id or channel_name" });
-      }
-      
-      // Simular autenticação bem-sucedida
-      const userId = req.session?.user?.id;
-      console.log('Using User ID:', userId);
-      
-      // Verificar se o usuário tem acesso ao canal
-      if (channel_name.startsWith('private-user-')) {
-        const channelUserId = channel_name.replace('private-user-', '');
-        console.log('Channel User ID:', channelUserId);
-        console.log('Current User ID:', userId);
-        
-        if (channelUserId !== userId) {
-          console.log('❌ User ID mismatch for private-user channel');
-          return res.status(403).json({ message: "Forbidden" });
-        }
-      }
-      
-      // Autenticar com Pusher
-      console.log('🔐 Authenticating with Pusher...');
-      const { pusher } = await import('../config/pusher');
-      
-      const auth = pusher.authenticate(socket_id, channel_name, {
-        user_id: userId,
-        user_info: {
-          name: 'User'
-        }
-      });
-      
-      console.log('✅ Pusher authentication successful');
-      console.log('Auth response:', auth);
-      
-      res.json(auth);
-    });
-  });
-  
-  // Test route to check body parsing
-  app.post('/api/pusher/test-body', (req, res) => {
-    console.log('=== TEST BODY PARSING ===');
-    console.log('Headers:', req.headers);
-    console.log('Body:', req.body);
-    console.log('Body type:', typeof req.body);
-    console.log('Body keys:', Object.keys(req.body || {}));
-    res.json({ 
-      success: true, 
-      body: req.body,
-      headers: req.headers,
-      bodyType: typeof req.body
-    });
-  });
-
-  // Test route with raw body parsing
-  app.post('/api/pusher/test-raw', express.raw({ type: 'application/x-www-form-urlencoded' }), (req, res) => {
-    console.log('=== TEST RAW BODY PARSING ===');
-    console.log('Headers:', req.headers);
-    console.log('Raw Body:', req.body);
-    console.log('Raw Body type:', typeof req.body);
-    console.log('Raw Body length:', req.body?.length);
-    
-    // Parse manually
-    const bodyString = req.body.toString();
-    console.log('Body String:', bodyString);
-    
-    const params = new URLSearchParams(bodyString);
-    const parsedBody: Record<string, string> = {};
-    params.forEach((value, key) => {
-      parsedBody[key] = value;
-    });
-    console.log('Parsed Body:', parsedBody);
-    
-    res.json({ 
-      success: true, 
-      rawBody: req.body.toString(),
-      parsedBody: parsedBody,
-      headers: req.headers
-    });
-  });
   
   // Notification routes
   app.get('/api/notifications', isAuthenticated, NotificationController.getUserNotifications);
@@ -269,22 +174,15 @@ app.put('/api/installments/:installmentId/mark-as-paid', isAuthenticated, EventC
       const { EmailService } = await import("../services/emailService");
       
       const testData = {
-        eventName: "Evento de Teste",
-        eventDate: "15/01/2025",
-        eventTime: "19:00",
-        eventLocation: "Centro de Convenções",
-        eventAddress: "Rua das Flores, 123 - São Paulo, SP",
-        eventImageUrl: "https://via.placeholder.com/400x200",
+        to: req.body.email || "teste@exemplo.com",
         participantName: "João Silva",
-        participantEmail: req.body.email || "teste@exemplo.com",
-        participantPhone: "(11) 99999-9999",
-        ticketName: "Ingresso VIP",
-        ticketPrice: 50.00,
+        eventName: "Evento de Teste",
         totalAmount: 50.00,
-        qrCode: "QR_TEST_123456789",
-        registrationId: "test-reg-123",
-        paymentStatus: "paid",
-        isFreeEvent: false
+        installmentPlan: {
+          totalInstallments: 3,
+          monthlyAmount: 16.67,
+          firstDueDate: "2024-01-15"
+        }
       };
 
       const emailSent = await EmailService.sendRegistrationConfirmation(testData);
@@ -366,50 +264,6 @@ app.put('/api/installments/:installmentId/mark-as-paid', isAuthenticated, EventC
     }
   });
 
-  // Debug routes
-  app.get('/api/debug/events/slug/:slug', async (req, res) => {
-    try {
-      const { storage } = await import("../storage");
-      const event = await storage.getEventBySlug(req.params.slug);
-      res.json({
-        found: !!event,
-        event: event,
-        slug: req.params.slug,
-        status: event?.status
-      });
-    } catch (error) {
-      res.status(500).json({ error: String(error) });
-    }
-  });
-
-  // Debug webhook endpoint
-  app.get('/api/debug/webhook/test', async (req, res) => {
-    try {
-      res.json({
-        message: 'Webhook endpoint está funcionando',
-        timestamp: new Date().toISOString(),
-        environment: process.env.NODE_ENV,
-        webhookSecretConfigured: !!process.env.STRIPE_WEBHOOK_SECRET,
-        stripeKeyConfigured: !!process.env.STRIPE_SECRET_KEY
-      });
-    } catch (error) {
-      res.status(500).json({ error: String(error) });
-    }
-  });
-
-  // Debug route to list all events
-  app.get('/api/debug/events', async (req, res) => {
-    try {
-      const { storage } = await import("../storage");
-      const events = await storage.getUserEvents(req.session?.user?.id || '');
-      res.json({ 
-        count: events.length,
-        events: events.map(e => ({ id: e.id, title: e.title, slug: e.slug, status: e.status }))
-      });
-    } catch (error) {
-      res.status(500).json({ error: String(error) });
-    }
-  });
 
   // Analytics routes
   app.get('/api/events/:eventId/analytics', isAuthenticated, requirePaidPlan, EventController.getEventAnalytics);

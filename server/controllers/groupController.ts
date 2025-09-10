@@ -289,16 +289,13 @@ export class GroupController {
   }
 
   /**
-   * Obter um grupo específico
+   * Obter um grupo específico com dados otimizados
    */
   static async getGroup(req: Request, res: Response) {
     try {
       const groupId = req.params.id;
       const userId = (req as any).user?.userId;
-
-      console.log('=== GET GROUP ===');
-      console.log('GroupId:', groupId);
-      console.log('UserId:', userId);
+      const includeEventData = req.query.includeEventData === 'true';
 
       if (!userId) {
         return res.status(401).json({ error: 'Usuário não autenticado' });
@@ -316,9 +313,11 @@ export class GroupController {
         return res.status(403).json({ error: 'Acesso negado ao grupo' });
       }
 
-      // Buscar dados adicionais do grupo
-      const currentParticipants = await storage.getGroupParticipants(groupId);
-      const confirmedParticipants = await storage.getGroupConfirmedParticipants(groupId);
+      // Buscar dados adicionais do grupo em paralelo
+      const [currentParticipants, confirmedParticipants] = await Promise.all([
+        storage.getGroupParticipants(groupId),
+        storage.getGroupConfirmedParticipants(groupId)
+      ]);
 
       // Retornar grupo com dados completos
       const groupWithStats = {
@@ -328,7 +327,21 @@ export class GroupController {
         maxParticipants: group.capacity
       };
 
-      res.json(groupWithStats);
+      // Se solicitado, incluir dados do evento e tickets
+      if (includeEventData && group.eventId) {
+        const [event, tickets] = await Promise.all([
+          storage.getEventById(group.eventId),
+          storage.getEventTickets(group.eventId)
+        ]);
+
+        res.json({
+          ...groupWithStats,
+          event,
+          tickets
+        });
+      } else {
+        res.json(groupWithStats);
+      }
     } catch (error) {
       console.error('Erro ao buscar grupo:', error);
       res.status(500).json({ error: 'Erro interno do servidor' });

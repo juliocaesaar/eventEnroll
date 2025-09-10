@@ -5,10 +5,16 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
-import { Search, Users, DollarSign, Calendar, ArrowLeft, UserPlus, Download, Shield } from 'lucide-react';
+import { Label } from '@/components/ui/label';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useToast } from '@/hooks/use-toast';
+import { Search, Users, DollarSign, Calendar, ArrowLeft, UserPlus, Shield } from 'lucide-react';
 import { apiRequest } from '@/lib/queryClient';
 import GroupManagers from '@/components/group/GroupManagers';
 import GroupParticipants from '@/components/group/GroupParticipants';
+import { useAuth } from '@/hooks/useAuth';
+import { useGroupData } from '@/hooks/useGroupData';
 
 interface Group {
   id: string;
@@ -38,52 +44,114 @@ interface Participant {
 export default function GroupManagementPage() {
   const [, setLocation] = useLocation();
   const { groupId } = useParams();
-  const [group, setGroup] = useState<Group | null>(null);
-  const [eventData, setEventData] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
+  const { isAuthenticated, isLoading: authLoading } = useAuth();
+  const { toast } = useToast();
+  const [showRegistrationModal, setShowRegistrationModal] = useState(false);
+  const [registrationData, setRegistrationData] = useState({
+    firstName: '',
+    lastName: '',
+    email: '',
+    phone: '',
+    ticketId: '',
+    paymentType: 'cash' as 'cash' | 'installments'
+  });
+
+  // Usar o hook otimizado para carregar dados
+  const { group, event: eventData, tickets, isLoading, isError, error, refetch } = useGroupData(groupId);
 
   useEffect(() => {
-    if (groupId) {
-      loadGroupData();
+    // Verificar autenticação antes de carregar dados
+    if (!authLoading && !isAuthenticated) {
+      console.log('❌ User not authenticated, redirecting to login');
+      setLocation('/login');
+      return;
     }
-  }, [groupId]);
+  }, [isAuthenticated, authLoading, setLocation]);
 
-  const loadGroupData = async () => {
+  // Tratar erros de autenticação
+  useEffect(() => {
+    if (isError && error instanceof Error && error.message.includes('401')) {
+      console.log('🔄 Authentication error detected, redirecting to login');
+      setLocation('/login');
+    }
+  }, [isError, error, setLocation]);
+
+  const handleRegistration = async () => {
     try {
-      setLoading(true);
-      
-      // Carregar dados do grupo
-      const groupResponse = await apiRequest('GET', `/api/groups/${groupId}`);
-      const groupData = await groupResponse.json();
-      console.log('Group data received:', groupData);
-      setGroup(groupData);
-
-      // Carregar dados do evento
-      if (groupData.eventId) {
-        const eventResponse = await apiRequest('GET', `/api/events/${groupData.eventId}`);
-        const eventData = await eventResponse.json();
-        setEventData(eventData);
+      if (!registrationData.firstName || !registrationData.lastName || !registrationData.email || !registrationData.ticketId) {
+        toast({
+          title: "Dados obrigatórios",
+          description: "Por favor, preencha todos os campos obrigatórios.",
+          variant: "destructive",
+        });
+        return;
       }
 
+      const registrationPayload = {
+        firstName: registrationData.firstName,
+        lastName: registrationData.lastName,
+        email: registrationData.email,
+        phone: registrationData.phone,
+        groupId: groupId,
+        tickets: [{ ticketId: registrationData.ticketId, quantity: 1 }],
+        paymentType: registrationData.paymentType,
+      };
 
+      const response = await apiRequest('POST', `/api/events/${eventData?.id}/register`, registrationPayload);
+      const result = await response.json();
+
+      if (result.success) {
+        toast({
+          title: "Sucesso",
+          description: "Participante inscrito com sucesso!",
+        });
+        
+        // Limpar formulário
+        setRegistrationData({
+          firstName: '',
+          lastName: '',
+          email: '',
+          phone: '',
+          ticketId: '',
+          paymentType: 'cash'
+        });
+        
+        setShowRegistrationModal(false);
+        refetch(); // Recarregar dados do grupo usando o hook otimizado
+      } else {
+        toast({
+          title: "Erro na inscrição",
+          description: result.message || "Erro ao inscrever participante.",
+          variant: "destructive",
+        });
+      }
     } catch (error) {
-      console.error('Erro ao carregar dados do grupo:', error);
-    } finally {
-      setLoading(false);
+      console.error('Erro ao inscrever participante:', error);
+      toast({
+        title: "Erro",
+        description: "Erro ao inscrever participante. Tente novamente.",
+        variant: "destructive",
+      });
     }
   };
 
-
-
-  if (loading) {
+  // Mostrar loading enquanto verifica autenticação ou carrega dados
+  if (authLoading || isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Carregando dados do grupo...</p>
+          <p className="mt-4 text-gray-600">
+            {authLoading ? 'Verificando autenticação...' : 'Carregando dados do grupo...'}
+          </p>
         </div>
       </div>
     );
+  }
+
+  // Se não estiver autenticado, não renderizar nada (já redirecionou)
+  if (!isAuthenticated) {
+    return null;
   }
 
   if (!group) {
@@ -120,16 +188,108 @@ export default function GroupManagementPage() {
               <p className="text-sm text-muted-foreground mt-1">Evento: {group.event?.name || 'N/A'}</p>
             </div>
             <div className="flex flex-col sm:flex-row gap-2 w-full lg:w-auto">
-              <Button variant="outline" className="w-full sm:w-auto">
-                <Download className="w-4 h-4 mr-2" />
-                <span className="hidden sm:inline">Exportar</span>
-                <span className="sm:hidden">Exportar</span>
-              </Button>
-              <Button className="w-full sm:w-auto">
-                <UserPlus className="w-4 h-4 mr-2" />
-                <span className="hidden sm:inline">Adicionar Participante</span>
-                <span className="sm:hidden">Adicionar</span>
-              </Button>
+              <Dialog open={showRegistrationModal} onOpenChange={setShowRegistrationModal}>
+                <DialogTrigger asChild>
+                  <Button className="w-full sm:w-auto">
+                    <UserPlus className="w-4 h-4 mr-2" />
+                    <span className="hidden sm:inline">Adicionar Participante</span>
+                    <span className="sm:hidden">Adicionar</span>
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-md">
+                  <DialogHeader>
+                    <DialogTitle>Inscrição de Participante</DialogTitle>
+                  </DialogHeader>
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="firstName">Nome *</Label>
+                        <Input
+                          id="firstName"
+                          value={registrationData.firstName}
+                          onChange={(e) => setRegistrationData(prev => ({ ...prev, firstName: e.target.value }))}
+                          placeholder="Nome"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="lastName">Sobrenome *</Label>
+                        <Input
+                          id="lastName"
+                          value={registrationData.lastName}
+                          onChange={(e) => setRegistrationData(prev => ({ ...prev, lastName: e.target.value }))}
+                          placeholder="Sobrenome"
+                        />
+                      </div>
+                    </div>
+                    
+                    <div>
+                      <Label htmlFor="email">Email *</Label>
+                      <Input
+                        id="email"
+                        type="email"
+                        value={registrationData.email}
+                        onChange={(e) => setRegistrationData(prev => ({ ...prev, email: e.target.value }))}
+                        placeholder="email@exemplo.com"
+                      />
+                    </div>
+                    
+                    <div>
+                      <Label htmlFor="phone">Telefone</Label>
+                      <Input
+                        id="phone"
+                        value={registrationData.phone}
+                        onChange={(e) => setRegistrationData(prev => ({ ...prev, phone: e.target.value }))}
+                        placeholder="(11) 99999-9999"
+                      />
+                    </div>
+                    
+                    <div>
+                      <Label htmlFor="ticket">Ingresso *</Label>
+                      <Select value={registrationData.ticketId} onValueChange={(value) => setRegistrationData(prev => ({ ...prev, ticketId: value }))}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione um ingresso" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {tickets.map((ticket) => (
+                            <SelectItem key={ticket.id} value={ticket.id}>
+                              {ticket.name} - R$ {ticket.price.toFixed(2)}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    
+                    <div>
+                      <Label htmlFor="paymentType">Tipo de Pagamento</Label>
+                      <Select value={registrationData.paymentType} onValueChange={(value: 'cash' | 'installments') => setRegistrationData(prev => ({ ...prev, paymentType: value }))}>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="cash">À vista</SelectItem>
+                          <SelectItem value="installments">Parcelado</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    
+                    <div className="flex gap-2 pt-4">
+                      <Button 
+                        variant="outline" 
+                        onClick={() => setShowRegistrationModal(false)}
+                        className="flex-1"
+                      >
+                        Cancelar
+                      </Button>
+                      <Button 
+                        onClick={handleRegistration}
+                        className="flex-1"
+                      >
+                        Inscrever
+                      </Button>
+                    </div>
+                  </div>
+                </DialogContent>
+              </Dialog>
             </div>
           </div>
         </div>
@@ -173,17 +333,17 @@ export default function GroupManagementPage() {
           <TabsContent value="participants" className="space-y-6">
             <GroupParticipants 
               groupId={groupId || ''} 
-              onUpdate={loadGroupData}
+              onUpdate={refetch}
               eventData={eventData ? {
                 pixKeyType: eventData.pixKeyType,
                 pixKey: eventData.pixKey,
-                pixInstallments: eventData.pixInstallments
+                pixInstallments: eventData.pixInstallments ? 1 : 0
               } : undefined}
             />
           </TabsContent>
 
           <TabsContent value="managers" className="space-y-6">
-            <GroupManagers groupId={groupId || ''} onUpdate={loadGroupData} />
+            <GroupManagers groupId={groupId || ''} onUpdate={refetch} />
           </TabsContent>
         </Tabs>
       </div>

@@ -266,7 +266,9 @@ function Router() {
           <Route path="/groups/:groupId/participants/:participantId" component={ParticipantDetailsPage} />
           <Route path="/admin/users" component={UserManagementPage} />
           <Route path="/admin/roles" component={RoleManagementPage} />
-          <Route path="/pix-test" component={PIXTestPage} />
+          {process.env.NODE_ENV === 'development' && (
+            <Route path="/pix-test" component={PIXTestPage} />
+          )}
           <Route path="/editor" component={EventEditorPage} />
         </>
       )}

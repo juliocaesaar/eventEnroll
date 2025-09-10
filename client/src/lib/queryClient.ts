@@ -16,16 +16,13 @@ export async function apiRequest(
   const { authManager } = await import('../hooks/authManager');
   const headers = authManager.getAuthHeaders();
   
-  console.log('🔍 API Request Debug:', { method, url, token: headers.Authorization ? 'present' : 'missing' });
+  // Reduzir logs para melhorar performance - apenas em desenvolvimento
+  if (process.env.NODE_ENV === 'development') {
+    console.log('🔍 API Request:', { method, url, hasToken: !!headers.Authorization });
+  }
   
   if (data) {
     headers["Content-Type"] = "application/json";
-  }
-  
-  if (headers.Authorization) {
-    console.log('🔑 Authorization header set:', headers.Authorization.substring(0, 20) + '...');
-  } else {
-    console.log('❌ No token found');
   }
 
   const res = await fetch(url, {
@@ -34,7 +31,20 @@ export async function apiRequest(
     body: data ? JSON.stringify(data) : undefined,
   });
 
-  console.log('📡 Response status:', res.status, res.statusText);
+  // Log apenas erros para melhorar performance
+  if (!res.ok) {
+    console.log('❌ API Error:', res.status, res.statusText, url);
+    
+    // Log response body for 401 errors to help debug
+    if (res.status === 401) {
+      try {
+        const errorBody = await res.clone().text();
+        console.log('❌ 401 Error response body:', errorBody);
+      } catch (e) {
+        console.log('❌ Could not read 401 error response body');
+      }
+    }
+  }
 
   await throwIfResNotOk(res);
   return res;
@@ -71,13 +81,15 @@ export const queryClient = new QueryClient({
       queryFn: getQueryFn({ on401: "throw" }),
       refetchInterval: false,
       refetchOnWindowFocus: false,
-      staleTime: Infinity,
-      retry: false,
-      // Evitar limpeza automática do cache
-      gcTime: Infinity,
+      staleTime: 5 * 60 * 1000, // 5 minutos - cache mais inteligente
+      retry: 1, // Permitir 1 retry para melhor UX
+      gcTime: 10 * 60 * 1000, // 10 minutos - limpeza mais eficiente
+      // Otimizações de performance
+      refetchOnMount: false,
+      refetchOnReconnect: false,
     },
     mutations: {
-      retry: false,
+      retry: 1, // Permitir 1 retry para mutations
     },
   },
 });

@@ -11,27 +11,30 @@ export interface AuthenticatedRequest extends Request {
 
 export const authenticateToken = (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
-    console.log('🔍 Auth middleware - Headers:', req.headers.authorization ? 'Authorization header present' : 'No authorization header');
-    console.log('🔍 Auth middleware - URL:', req.url);
-    console.log('🔍 Auth middleware - Full Authorization header:', req.headers.authorization);
-    
     const token = extractTokenFromHeader(req.headers.authorization);
     
     if (!token) {
-      console.log('❌ No token found in request');
+      // Log apenas em desenvolvimento ou para erros
+      if (process.env.NODE_ENV === 'development') {
+        console.log('❌ No token found in request:', req.url);
+      }
       return res.status(401).json({ message: "Token não fornecido" });
     }
     
-    console.log('🔑 Token found:', token.substring(0, 20) + '...');
-    console.log('🔑 Full token:', token);
-    
     const payload = verifyToken(token);
     if (!payload) {
-      console.log('❌ Token verification failed');
+      // Log apenas em desenvolvimento ou para erros
+      if (process.env.NODE_ENV === 'development') {
+        console.log('❌ Token verification failed for:', req.url);
+      }
       return res.status(401).json({ message: "Token inválido" });
     }
     
-    console.log('✅ Token verified for user:', payload.userId);
+    // Log apenas em desenvolvimento
+    if (process.env.NODE_ENV === 'development') {
+      console.log('✅ Token verified for user:', payload.userId, 'on:', req.url);
+    }
+    
     req.user = payload;
     next();
   } catch (error) {

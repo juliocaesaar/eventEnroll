@@ -7,12 +7,16 @@ import { globalNotificationManager } from './useGlobalNotifications';
 const PUSHER_CONFIG = {
   key: 'f0725138d607f195d650',
   cluster: 'sa1',
-  authEndpoint: '/api/pusher/auth-debug',
+  authEndpoint: '/api/pusher/auth',
   auth: {
     // Removendo Content-Type customizado para deixar o Pusher.js usar o padrão
   },
   forceTLS: true,
   enabledTransports: ['ws', 'wss'],
+  // Configurações de timeout para evitar travamentos
+  activityTimeout: 30000, // 30 segundos
+  pongTimeout: 6000, // 6 segundos
+  unavailableTimeout: 10000, // 10 segundos
 };
 
 export interface PusherNotification {
@@ -69,19 +73,19 @@ class GlobalPusherManager {
 
   // Initialize Pusher (only once)
   initialize(userId: string) {
-    console.log('=== TENTANDO INICIALIZAR PUSHER GLOBAL ===');
-    console.log('User ID:', userId);
-    console.log('Is Initialized:', this.isInitialized);
-    
-    if (this.isInitialized) {
-      console.log('🔄 Pusher já foi inicializado, pulando...');
-      return;
+    // Log apenas em desenvolvimento
+    if (process.env.NODE_ENV === 'development') {
+      console.log('=== INICIALIZANDO PUSHER GLOBAL ===');
+      console.log('User ID:', userId);
+      console.log('Is Initialized:', this.isInitialized);
     }
     
-    console.log('=== INICIALIZANDO PUSHER GLOBAL ===');
-    console.log('Pusher Key:', PUSHER_CONFIG.key);
-    console.log('Pusher Cluster:', PUSHER_CONFIG.cluster);
-    console.log('Auth Endpoint:', PUSHER_CONFIG.authEndpoint);
+    if (this.isInitialized) {
+      if (process.env.NODE_ENV === 'development') {
+        console.log('🔄 Pusher já foi inicializado, pulando...');
+      }
+      return;
+    }
 
     this.pusher = new Pusher(PUSHER_CONFIG.key, {
       cluster: PUSHER_CONFIG.cluster,
@@ -93,23 +97,28 @@ class GlobalPusherManager {
 
     // Connection event handlers
     this.pusher.connection.bind('connected', () => {
-      console.log('✅ Pusher connected successfully');
+      if (process.env.NODE_ENV === 'development') {
+        console.log('✅ Pusher connected successfully');
+      }
       this.isConnected = true;
       this.notifySubscribers();
     });
 
     this.pusher.connection.bind('disconnected', () => {
-      console.log('❌ Pusher disconnected');
+      if (process.env.NODE_ENV === 'development') {
+        console.log('❌ Pusher disconnected');
+      }
       this.isConnected = false;
       this.notifySubscribers();
     });
 
     // Subscribe to user channel
     const userChannelName = `private-user-${userId}`;
-    console.log('🔗 Subscribing to user channel:', userChannelName);
+    if (process.env.NODE_ENV === 'development') {
+      console.log('🔗 Subscribing to user channel:', userChannelName);
+    }
     
     const userChannel = this.pusher.subscribe(userChannelName);
-    console.log('📡 Canal criado:', userChannel);
     
     // Event listeners
     this.setupEventListeners(userChannel, userChannelName);
@@ -118,13 +127,16 @@ class GlobalPusherManager {
   }
 
   private setupEventListeners(userChannel: any, userChannelName: string) {
-    console.log('🔧 Configurando event listeners para canal:', userChannelName);
+    if (process.env.NODE_ENV === 'development') {
+      console.log('🔧 Configurando event listeners para canal:', userChannelName);
+    }
     
     // Event listeners (same as before)
     userChannel.bind('new_registration', (notification: PusherNotification) => {
-      console.log('🎉 NEW REGISTRATION NOTIFICATION RECEIVED:', notification);
+      if (process.env.NODE_ENV === 'development') {
+        console.log('🎉 NEW REGISTRATION NOTIFICATION RECEIVED:', notification);
+      }
       
-      console.log('📢 Calling globalNotificationManager.addNotification for new_registration');
       globalNotificationManager.addNotification({
         type: 'new_registration',
         title: "Nova Inscrição! 🎉",
@@ -133,13 +145,13 @@ class GlobalPusherManager {
         eventId: notification.event?.id,
         eventTitle: notification.event?.title,
       });
-      console.log('✅ globalNotificationManager.addNotification called for new_registration');
     });
 
     userChannel.bind('payment_confirmed', (notification: PusherNotification) => {
-      console.log('💰 PAYMENT CONFIRMED NOTIFICATION RECEIVED:', notification);
+      if (process.env.NODE_ENV === 'development') {
+        console.log('💰 PAYMENT CONFIRMED NOTIFICATION RECEIVED:', notification);
+      }
       
-      console.log('📢 Calling globalNotificationManager.addNotification for payment_confirmed');
       globalNotificationManager.addNotification({
         type: 'payment_confirmed',
         title: "Pagamento Confirmado! 💰",
@@ -148,11 +160,12 @@ class GlobalPusherManager {
         eventId: notification.event?.id,
         eventTitle: notification.event?.title,
       });
-      console.log('✅ globalNotificationManager.addNotification called for payment_confirmed');
     });
 
     userChannel.bind('registration_updated', (notification: PusherNotification) => {
-      console.log('📝 REGISTRATION UPDATED NOTIFICATION RECEIVED:', notification);
+      if (process.env.NODE_ENV === 'development') {
+        console.log('📝 REGISTRATION UPDATED NOTIFICATION RECEIVED:', notification);
+      }
       
       globalNotificationManager.addNotification({
         type: 'system',
@@ -166,34 +179,42 @@ class GlobalPusherManager {
 
     // Evento de teste
     userChannel.bind('test_notification', (notification: PusherNotification) => {
-      console.log('🧪 TEST NOTIFICATION RECEIVED:', notification);
+      if (process.env.NODE_ENV === 'development') {
+        console.log('🧪 TEST NOTIFICATION RECEIVED:', notification);
+      }
       
-      console.log('📢 Calling globalNotificationManager.addNotification for test_notification');
       globalNotificationManager.addNotification({
         type: 'system',
         title: "Teste Pusher! 🧪",
         message: notification.data?.message || 'Notificação de teste recebida',
         timestamp: notification.timestamp,
       });
-      console.log('✅ globalNotificationManager.addNotification called for test_notification');
     });
 
     // Log de subscrição bem-sucedida
     userChannel.bind('pusher:subscription_succeeded', () => {
-      console.log('✅ Successfully subscribed to user channel:', userChannelName);
+      if (process.env.NODE_ENV === 'development') {
+        console.log('✅ Successfully subscribed to user channel:', userChannelName);
+      }
     });
 
     userChannel.bind('pusher:subscription_error', (error: any) => {
       console.log('❌ Error subscribing to user channel:', error);
-      console.log('❌ Error details:', JSON.stringify(error, null, 2));
+      if (process.env.NODE_ENV === 'development') {
+        console.log('❌ Error details:', JSON.stringify(error, null, 2));
+      }
     });
 
-    // Listener genérico para debug
-    userChannel.bind_global((eventName: string, data: any) => {
-      console.log('🔍 EVENT RECEIVED on', userChannelName + ':', eventName, data);
-    });
+    // Listener genérico para debug (apenas em desenvolvimento)
+    if (process.env.NODE_ENV === 'development') {
+      userChannel.bind_global((eventName: string, data: any) => {
+        console.log('🔍 EVENT RECEIVED on', userChannelName + ':', eventName, data);
+      });
+    }
     
-    console.log('✅ Event listeners configurados com sucesso para:', userChannelName);
+    if (process.env.NODE_ENV === 'development') {
+      console.log('✅ Event listeners configurados com sucesso para:', userChannelName);
+    }
   }
 
   private notifySubscribers() {
@@ -285,15 +306,21 @@ export const usePusher = () => {
   const [isConnected, setIsConnected] = useState(false);
 
   useEffect(() => {
-    console.log('🔄 usePusher useEffect executado');
-    console.log('User:', (user as any)?.id);
+    if (process.env.NODE_ENV === 'development') {
+      console.log('🔄 usePusher useEffect executado');
+      console.log('User:', (user as any)?.id);
+    }
     
     if (!(user as any)?.id) {
-      console.log('❌ User ID não encontrado, pulando inicialização');
+      if (process.env.NODE_ENV === 'development') {
+        console.log('❌ User ID não encontrado, pulando inicialização');
+      }
       return;
     }
 
-    console.log('🚀 Inicializando Pusher global com User ID:', (user as any).id);
+    if (process.env.NODE_ENV === 'development') {
+      console.log('🚀 Inicializando Pusher global com User ID:', (user as any).id);
+    }
     
     // Initialize global Pusher
     globalPusherManager.initialize((user as any).id);
@@ -301,13 +328,17 @@ export const usePusher = () => {
     // Subscribe to connection status changes
     const unsubscribe = globalPusherManager.subscribe(() => {
       const status = globalPusherManager.getConnectionStatus();
-      console.log('📡 Status de conexão atualizado:', status);
+      if (process.env.NODE_ENV === 'development') {
+        console.log('📡 Status de conexão atualizado:', status);
+      }
       setIsConnected(status);
     });
 
     // Set initial state
     const initialStatus = globalPusherManager.getConnectionStatus();
-    console.log('📡 Status inicial de conexão:', initialStatus);
+    if (process.env.NODE_ENV === 'development') {
+      console.log('📡 Status inicial de conexão:', initialStatus);
+    }
     setIsConnected(initialStatus);
 
     return unsubscribe;

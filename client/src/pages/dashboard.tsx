@@ -22,8 +22,10 @@ export default function Dashboard() {
   const { isConnected } = usePusher();
   const { addNotification } = useGlobalNotifications();
 
-  // Função para testar Pusher
+  // Função para testar Pusher (apenas em desenvolvimento)
   const testPusher = async () => {
+    if (process.env.NODE_ENV !== 'development') return;
+    
     try {
       const response = await fetch('/api/pusher/test', {
         method: 'POST',
@@ -140,7 +142,7 @@ export default function Dashboard() {
                 <Plus className="w-4 h-4 mr-2" />
                 Criar Evento
               </Button>
-              {user?.role === 'admin' && (
+              {user?.role === 'admin' && process.env.NODE_ENV === 'development' && (
                 <Button 
                   variant="outline"
                   onClick={() => setLocation('/pix-test')}
