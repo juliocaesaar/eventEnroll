@@ -1069,6 +1069,37 @@ export class DatabaseStorage implements IStorage {
       .where(eq(paymentInstallments.registrationId, participantId))
       .orderBy(paymentInstallments.installmentNumber);
     
+    // Calcular valores pagos
+    let totalPaid = 0;
+    const installmentsWithPayments = await Promise.all(
+      installments.map(async (installment) => {
+        // Buscar transações de pagamento para esta parcela
+        const payments = await db
+          .select()
+          .from(paymentTransactions)
+          .where(
+            and(
+              eq(paymentTransactions.installmentId, installment.id),
+              eq(paymentTransactions.type, 'payment'),
+              eq(paymentTransactions.status, 'completed')
+            )
+          );
+        
+        const paidAmount = payments.reduce((sum, payment) => sum + Number(payment.amount), 0);
+        totalPaid += paidAmount;
+        
+        return {
+          id: installment.id,
+          installmentNumber: installment.installmentNumber,
+          amount: installment.originalAmount,
+          dueDate: installment.dueDate,
+          paidDate: installment.paidDate,
+          status: installment.status,
+          paidAmount: paidAmount
+        };
+      })
+    );
+    
     // Carregar dados do grupo e evento
     const group = await db
       .select()
@@ -1084,14 +1115,9 @@ export class DatabaseStorage implements IStorage {
     
     return {
       ...participantData,
-      installments: installments.map(installment => ({
-        id: installment.id,
-        installmentNumber: installment.installmentNumber,
-        amount: installment.originalAmount,
-        dueDate: installment.dueDate,
-        paidDate: installment.paidDate,
-        status: installment.status
-      })),
+      amountPaid: totalPaid,
+      totalAmount: installments.reduce((sum, inst) => sum + Number(inst.originalAmount), 0),
+      installments: installmentsWithPayments,
       group: group[0] || null,
       event: event[0] || null
     };

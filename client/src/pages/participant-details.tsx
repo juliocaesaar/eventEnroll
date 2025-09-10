@@ -123,7 +123,10 @@ export default function ParticipantDetailsPage() {
     const overdue = installments.filter(i => i.status === 'overdue').length;
     const percentage = total > 0 ? Math.round((paid / total) * 100) : 0;
     
-    return { total, paid, overdue, percentage };
+    // Encontrar a próxima parcela a ser paga
+    const nextInstallment = installments.find(i => i.status === 'pending' || i.status === 'overdue');
+    
+    return { total, paid, overdue, percentage, nextInstallment };
   };
 
   const formatCurrency = (amount: number) => {
@@ -400,43 +403,67 @@ export default function ParticipantDetailsPage() {
                               </div>
                               
                               <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-2">
-                                {installment.status === 'pending' && (
-                                  <>
-                                    <Button
-                                      size="sm"
-                                      variant="outline"
-                                      onClick={() => generateQRCode(installment)}
-                                      className="w-full sm:w-auto"
-                                    >
-                                      <QrCode className="w-4 h-4 mr-1" />
-                                      <span className="hidden sm:inline">QR Code</span>
-                                      <span className="sm:hidden">QR</span>
-                                    </Button>
-                                    <Button
-                                      size="sm"
-                                      onClick={() => {
-                                        setInstallmentToConfirm(installment);
-                                        setShowPaymentConfirmation(true);
-                                      }}
-                                      className="w-full sm:w-auto"
-                                    >
-                                      <CheckCircle className="w-4 h-4 mr-1" />
-                                      Confirmar
-                                    </Button>
-                                  </>
-                                )}
-                                {installment.status === 'paid' && (
-                                  <Badge variant="default" className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 w-fit">
-                                    <CheckCircle className="w-3 h-3 mr-1" />
-                                    Pago
-                                  </Badge>
-                                )}
-                                {installment.status === 'overdue' && (
-                                  <Badge variant="destructive" className="w-fit">
-                                    <AlertCircle className="w-3 h-3 mr-1" />
-                                    Atrasado
-                                  </Badge>
-                                )}
+                                {(() => {
+                                  const progress = getInstallmentProgress(participant.installments);
+                                  const isNextInstallment = progress.nextInstallment?.id === installment.id;
+                                  
+                                  if (installment.status === 'paid') {
+                                    return (
+                                      <Badge variant="default" className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 w-fit">
+                                        <CheckCircle className="w-3 h-3 mr-1" />
+                                        Pago
+                                      </Badge>
+                                    );
+                                  }
+                                  
+                                  if (installment.status === 'overdue') {
+                                    return (
+                                      <Badge variant="destructive" className="w-fit">
+                                        <AlertCircle className="w-3 h-3 mr-1" />
+                                        Atrasado
+                                      </Badge>
+                                    );
+                                  }
+                                  
+                                  if (installment.status === 'pending' && isNextInstallment) {
+                                    return (
+                                      <>
+                                        <Button
+                                          size="sm"
+                                          variant="outline"
+                                          onClick={() => generateQRCode(installment)}
+                                          className="w-full sm:w-auto"
+                                        >
+                                          <QrCode className="w-4 h-4 mr-1" />
+                                          <span className="hidden sm:inline">QR Code</span>
+                                          <span className="sm:hidden">QR</span>
+                                        </Button>
+                                        <Button
+                                          size="sm"
+                                          onClick={() => {
+                                            setInstallmentToConfirm(installment);
+                                            setShowPaymentConfirmation(true);
+                                          }}
+                                          className="w-full sm:w-auto"
+                                        >
+                                          <CheckCircle className="w-4 h-4 mr-1" />
+                                          Confirmar
+                                        </Button>
+                                      </>
+                                    );
+                                  }
+                                  
+                                  if (installment.status === 'pending' && !isNextInstallment) {
+                                    return (
+                                      <Badge variant="secondary" className="w-fit">
+                                        <Clock className="w-3 h-3 mr-1" />
+                                        Aguardando
+                                      </Badge>
+                                    );
+                                  }
+                                  
+                                  return null;
+                                })()}
                               </div>
                             </div>
                           ))}
