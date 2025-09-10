@@ -200,7 +200,7 @@ export default function ParticipantDetailsPage() {
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
           <h1 className="text-2xl font-bold text-gray-900 mb-4">Participante não encontrado</h1>
-          <Button onClick={() => setLocation(`/groups/${groupId}/management`)}>
+          <Button onClick={() => setLocation(`/groups/${groupId}/manage`)}>
             <ArrowLeft className="w-4 h-4 mr-2" />
             Voltar ao Grupo
           </Button>
@@ -211,12 +211,12 @@ export default function ParticipantDetailsPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      <div className="max-w-4xl mx-auto px-3 sm:px-4 lg:px-6 py-4 sm:py-6">
         {/* Header */}
         <div className="mb-6">
           <Button 
             variant="ghost" 
-            onClick={() => setLocation(`/groups/${groupId}/management`)}
+            onClick={() => setLocation(`/groups/${groupId}/manage`)}
             className="mb-4"
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
@@ -232,7 +232,7 @@ export default function ParticipantDetailsPage() {
 
         <div className="space-y-6">
           {/* Informações Básicas */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
             <Card>
               <CardHeader>
                 <CardTitle className="text-lg flex items-center gap-2">
@@ -348,22 +348,22 @@ export default function ParticipantDetailsPage() {
                         </div>
                         
                         {/* Estatísticas */}
-                        <div className="grid grid-cols-3 gap-4 text-center">
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 text-center">
                           <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-3">
-                            <CheckCircle className="w-6 h-6 text-green-500 mx-auto mb-1" />
-                            <p className="text-lg font-semibold text-green-600 dark:text-green-400">{progress.paid}</p>
+                            <CheckCircle className="w-5 h-5 sm:w-6 sm:h-6 text-green-500 mx-auto mb-1" />
+                            <p className="text-base sm:text-lg font-semibold text-green-600 dark:text-green-400">{progress.paid}</p>
                             <p className="text-xs text-green-600 dark:text-green-400">Pagas</p>
                           </div>
                           <div className="bg-yellow-50 dark:bg-yellow-900/20 rounded-lg p-3">
-                            <Clock className="w-6 h-6 text-yellow-500 mx-auto mb-1" />
-                            <p className="text-lg font-semibold text-yellow-600 dark:text-yellow-400">
+                            <Clock className="w-5 h-5 sm:w-6 sm:h-6 text-yellow-500 mx-auto mb-1" />
+                            <p className="text-base sm:text-lg font-semibold text-yellow-600 dark:text-yellow-400">
                               {progress.total - progress.paid - progress.overdue}
                             </p>
                             <p className="text-xs text-yellow-600 dark:text-yellow-400">Pendentes</p>
                           </div>
                           <div className="bg-red-50 dark:bg-red-900/20 rounded-lg p-3">
-                            <AlertCircle className="w-6 h-6 text-red-500 mx-auto mb-1" />
-                            <p className="text-lg font-semibold text-red-600 dark:text-red-400">{progress.overdue}</p>
+                            <AlertCircle className="w-5 h-5 sm:w-6 sm:h-6 text-red-500 mx-auto mb-1" />
+                            <p className="text-base sm:text-lg font-semibold text-red-600 dark:text-red-400">{progress.overdue}</p>
                             <p className="text-xs text-red-600 dark:text-red-400">Em Atraso</p>
                           </div>
                         </div>
@@ -376,37 +376,41 @@ export default function ParticipantDetailsPage() {
                           {participant.installments.map((installment, index) => (
                             <div 
                               key={installment.id} 
-                              className="flex items-center justify-between p-4 border rounded-lg bg-card"
+                              className="flex flex-col sm:flex-row sm:items-center justify-between p-4 border rounded-lg bg-card gap-4"
                             >
-                              <div className="flex-1">
-                                <div className="flex items-center gap-3 mb-2">
+                              <div className="flex-1 min-w-0">
+                                <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 mb-2">
                                   <span className="text-sm font-medium text-muted-foreground">
                                     Parcela {index + 1}
                                   </span>
                                   {getPaymentStatusBadge(installment.status)}
                                 </div>
-                                <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                                <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-sm text-muted-foreground">
                                   <span className="flex items-center gap-1">
-                                    <DollarSign className="w-4 h-4" />
+                                    <DollarSign className="w-4 h-4 flex-shrink-0" />
                                     {formatCurrency(installment.amount)}
                                   </span>
                                   <span className="flex items-center gap-1">
-                                    <Calendar className="w-4 h-4" />
-                                    Vencimento: {formatDate(installment.dueDate)}
+                                    <Calendar className="w-4 h-4 flex-shrink-0" />
+                                    <span className="hidden sm:inline">Vencimento: </span>
+                                    <span className="sm:hidden">Venc: </span>
+                                    {formatDate(installment.dueDate)}
                                   </span>
                                 </div>
                               </div>
                               
-                              <div className="flex items-center gap-2">
+                              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-2">
                                 {installment.status === 'pending' && (
                                   <>
                                     <Button
                                       size="sm"
                                       variant="outline"
                                       onClick={() => generateQRCode(installment)}
+                                      className="w-full sm:w-auto"
                                     >
                                       <QrCode className="w-4 h-4 mr-1" />
-                                      QR Code
+                                      <span className="hidden sm:inline">QR Code</span>
+                                      <span className="sm:hidden">QR</span>
                                     </Button>
                                     <Button
                                       size="sm"
@@ -414,6 +418,7 @@ export default function ParticipantDetailsPage() {
                                         setInstallmentToConfirm(installment);
                                         setShowPaymentConfirmation(true);
                                       }}
+                                      className="w-full sm:w-auto"
                                     >
                                       <CheckCircle className="w-4 h-4 mr-1" />
                                       Confirmar
@@ -421,13 +426,13 @@ export default function ParticipantDetailsPage() {
                                   </>
                                 )}
                                 {installment.status === 'paid' && (
-                                  <Badge variant="default" className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+                                  <Badge variant="default" className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 w-fit">
                                     <CheckCircle className="w-3 h-3 mr-1" />
                                     Pago
                                   </Badge>
                                 )}
                                 {installment.status === 'overdue' && (
-                                  <Badge variant="destructive">
+                                  <Badge variant="destructive" className="w-fit">
                                     <AlertCircle className="w-3 h-3 mr-1" />
                                     Atrasado
                                   </Badge>
