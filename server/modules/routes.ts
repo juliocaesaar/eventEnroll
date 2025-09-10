@@ -30,6 +30,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Seed initial data
   await seedInitialData();
 
+  // Health check route (public)
+  app.get('/api/health', (req, res) => {
+    res.json({
+      status: 'ok',
+      timestamp: new Date().toISOString(),
+      uptime: process.uptime(),
+      environment: process.env.NODE_ENV || 'development',
+      version: process.env.npm_package_version || '1.0.0'
+    });
+  });
+
   // Auth routes
   app.post('/api/auth/login', AuthController.login);
   app.post('/api/auth/register', AuthController.register);
