@@ -252,7 +252,7 @@ export default function GroupManagementPage() {
                         <SelectContent>
                           {tickets.map((ticket) => (
                             <SelectItem key={ticket.id} value={ticket.id}>
-                              {ticket.name} - R$ {ticket.price.toFixed(2)}
+                              {ticket.name} - R$ {Number(ticket.price || 0).toFixed(2)}
                             </SelectItem>
                           ))}
                         </SelectContent>

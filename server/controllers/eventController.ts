@@ -58,52 +58,52 @@ export class EventController {
   // Pusher authentication endpoint
   static async authenticatePusher(req: any, res: Response) {
     try {
-      console.log('=== PUSHER AUTH REQUEST ===');
-      console.log('Body:', req.body);
-      console.log('Session:', req.session);
-      console.log('URL:', req.url);
-      console.log('Content-Type:', req.headers['content-type']);
+      if (process.env.NODE_ENV === 'development') {
+        console.log('=== PUSHER AUTH REQUEST ===');
+        console.log('Body:', req.body);
+        console.log('Session:', req.session);
+        console.log('URL:', req.url);
+        console.log('Content-Type:', req.headers['content-type']);
+      }
       
       // Extrair socket_id e channel_name do body
       let socket_id, channel_name;
       
-      // Se o body está vazio, tentar parsing manual
-      if (!req.body || Object.keys(req.body).length === 0) {
-        console.log('🔍 Body vazio, tentando parsing manual...');
+      // Tentar diferentes métodos de parsing
+      if (req.body && Object.keys(req.body).length > 0) {
+        // Body normal (parsed by express)
+        socket_id = req.body.socket_id;
+        channel_name = req.body.channel_name;
+        if (process.env.NODE_ENV === 'development') {
+          console.log('✅ Using parsed body:', { socket_id, channel_name });
+        }
+      } else {
+        // Body vazio, tentar parsing manual do raw body
+        if (process.env.NODE_ENV === 'development') {
+          console.log('🔍 Body vazio, tentando parsing manual...');
+        }
         
-        // Verificar se há dados raw no body
-        if (req.body && typeof req.body.toString === 'function') {
-          const bodyString = req.body.toString();
-          console.log('Body String:', bodyString);
-          
-          // Se o body é um objeto vazio, tentar acessar o raw body
-          if (bodyString === '[object Object]' || bodyString === '{}') {
-            console.log('🔍 Body é objeto vazio, tentando acessar raw body...');
-            
-            // Tentar acessar o raw body diretamente
-            const rawBody = (req as any).rawBody;
-            if (rawBody) {
-              console.log('Raw Body encontrado:', rawBody.toString());
-              const params = new URLSearchParams(rawBody.toString());
-              socket_id = params.get('socket_id');
-              channel_name = params.get('channel_name');
-              console.log('Parsed socket_id:', socket_id);
-              console.log('Parsed channel_name:', channel_name);
-            } else {
-              console.log('❌ Raw body não encontrado');
-            }
-          } else if (bodyString && bodyString !== '[object Object]') {
+        // Tentar acessar o raw body
+        const rawBody = (req as any).rawBody;
+        if (rawBody) {
+          const params = new URLSearchParams(rawBody.toString());
+          socket_id = params.get('socket_id');
+          channel_name = params.get('channel_name');
+          if (process.env.NODE_ENV === 'development') {
+            console.log('✅ Parsed from raw body:', { socket_id, channel_name });
+          }
+        } else {
+          // Último recurso: tentar parsing do body string
+          const bodyString = req.body?.toString();
+          if (bodyString && bodyString !== '[object Object]' && bodyString !== '{}') {
             const params = new URLSearchParams(bodyString);
             socket_id = params.get('socket_id');
             channel_name = params.get('channel_name');
-            console.log('Parsed socket_id:', socket_id);
-            console.log('Parsed channel_name:', channel_name);
+            if (process.env.NODE_ENV === 'development') {
+              console.log('✅ Parsed from body string:', { socket_id, channel_name });
+            }
           }
         }
-      } else {
-        // Body normal
-        socket_id = req.body.socket_id;
-        channel_name = req.body.channel_name;
       }
       
       const userId = req.user?.userId || req.session?.user?.id;

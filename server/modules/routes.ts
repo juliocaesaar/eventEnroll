@@ -152,19 +152,53 @@ app.put('/api/installments/:installmentId/mark-as-paid', isAuthenticated, EventC
   // Pusher authentication route (custom middleware for Pusher)
   app.post('/api/pusher/auth', async (req, res, next) => {
     try {
-      // Tentar autenticação via token no header primeiro
-      const token = req.headers.authorization?.replace('Bearer ', '');
-      if (token) {
-        const { verifyToken } = await import('../config/jwt');
-        const payload = verifyToken(token);
-        if (payload) {
-          req.user = payload;
-          return next();
+      // Capturar raw body para parsing manual se necessário
+      if (req.headers['content-type']?.includes('application/x-www-form-urlencoded')) {
+        let rawBody = '';
+        req.on('data', (chunk) => {
+          rawBody += chunk.toString();
+        });
+        req.on('end', async () => {
+          try {
+            // Parse manual do body
+            const params = new URLSearchParams(rawBody);
+            req.body = {
+              socket_id: params.get('socket_id'),
+              channel_name: params.get('channel_name')
+            };
+            
+            // Tentar autenticação via token no header primeiro
+            const token = req.headers.authorization?.replace('Bearer ', '');
+            if (token) {
+              const { verifyToken } = await import('../config/jwt');
+              const payload = verifyToken(token);
+              if (payload) {
+                req.user = payload;
+                return next();
+              }
+            }
+            
+            // Se não há token válido, retornar erro
+            return res.status(401).json({ message: "Token não fornecido" });
+          } catch (error) {
+            console.error("Error in Pusher auth middleware:", error);
+            return res.status(401).json({ message: "Token inválido" });
+          }
+        });
+      } else {
+        // Para outros content-types, usar o middleware normal
+        const token = req.headers.authorization?.replace('Bearer ', '');
+        if (token) {
+          const { verifyToken } = await import('../config/jwt');
+          const payload = verifyToken(token);
+          if (payload) {
+            req.user = payload;
+            return next();
+          }
         }
+        
+        return res.status(401).json({ message: "Token não fornecido" });
       }
-      
-      // Se não há token válido, retornar erro
-      return res.status(401).json({ message: "Token não fornecido" });
     } catch (error) {
       console.error("Error in Pusher auth middleware:", error);
       return res.status(401).json({ message: "Token inválido" });
