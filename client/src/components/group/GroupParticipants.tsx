@@ -5,10 +5,11 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
-import { Search, Users, Mail, Phone, Calendar, DollarSign, Filter, Download, UserCheck, UserX, Clock, CheckCircle, AlertCircle, Eye, Share2, QrCode, MessageCircle, RefreshCw } from 'lucide-react';
+import { Search, Users, Mail, Phone, Calendar, DollarSign, Filter, Download, UserCheck, UserX, Clock, CheckCircle, AlertCircle, Eye, Share2, QrCode, MessageCircle, RefreshCw, Edit, Trash2, FileSpreadsheet, FileText } from 'lucide-react';
+import * as XLSX from 'xlsx';
 
 interface Participant {
   id: string;
@@ -19,7 +20,7 @@ interface Participant {
   status: 'pending' | 'confirmed' | 'cancelled';
   amountPaid: number | string;
   totalAmount: number | string;
-  registrationDate: string;
+  createdAt: string;
   paymentStatus: 'pending' | 'partial' | 'paid' | 'overdue';
   installments?: {
     id: string;
@@ -54,6 +55,14 @@ export default function GroupParticipants({ groupId, onUpdate, eventData }: Grou
   const [qrCodeDataUrl, setQrCodeDataUrl] = useState<string>('');
   const [showPaymentConfirmation, setShowPaymentConfirmation] = useState(false);
   const [installmentToConfirm, setInstallmentToConfirm] = useState<any>(null);
+  const [showEditParticipant, setShowEditParticipant] = useState(false);
+  const [participantToEdit, setParticipantToEdit] = useState<Participant | null>(null);
+  const [editFormData, setEditFormData] = useState({
+    firstName: '',
+    lastName: '',
+    email: '',
+    phone: ''
+  });
   const { toast } = useToast();
 
   // Função para detectar se é mobile
@@ -138,30 +147,105 @@ export default function GroupParticipants({ groupId, onUpdate, eventData }: Grou
   };
 
 
-  const exportParticipants = () => {
-    const csvContent = [
-      ['Nome', 'Email', 'Telefone', 'Status', 'Pagamento', 'Valor Pago', 'Valor Total', 'Data Inscrição'],
-      ...filteredParticipants.map(p => [
+  const exportParticipants = (format: 'csv' | 'excel' = 'csv') => {
+    const headers = [
+      'Nome Completo',
+      'Email', 
+      'Telefone',
+      'Status da Inscrição',
+      'Status do Pagamento',
+      'Valor Pago (R$)',
+      'Valor Total (R$)',
+      'Valor Restante (R$)',
+      'Data de Inscrição',
+      'Último Pagamento',
+      'Parcelas Pagas',
+      'Total de Parcelas',
+      'Progresso (%)'
+    ];
+
+    const data = filteredParticipants.map(p => {
+      const paymentAmounts = calculatePaymentAmounts(p);
+      const lastPaymentDate = getLastPaymentDate(p);
+      const progress = p.installments ? getInstallmentProgress(p.installments) : { paid: 0, total: 0, percentage: 0 };
+      
+      return [
         `${p.firstName} ${p.lastName}`,
         p.email,
         p.phone || '',
-        p.status,
-        p.paymentStatus,
-        p.amountPaid.toString(),
-        p.totalAmount.toString(),
-        new Date(p.registrationDate).toLocaleDateString('pt-BR')
-      ])
-    ].map(row => row.join(',')).join('\n');
+        p.status === 'confirmed' ? 'Confirmado' : p.status === 'cancelled' ? 'Cancelado' : 'Pendente',
+        calculateRegistrationStatus(p) === 'paid' ? 'Pago' :
+        calculateRegistrationStatus(p) === 'overdue' ? 'Em Atraso' :
+        calculateRegistrationStatus(p) === 'in_progress' ? 'Em Processo' : 'Pendente',
+        paymentAmounts.amountPaid.toFixed(2),
+        paymentAmounts.totalAmount.toFixed(2),
+        (paymentAmounts.totalAmount - paymentAmounts.amountPaid).toFixed(2),
+        new Date(p.createdAt).toLocaleDateString('pt-BR'),
+        lastPaymentDate ? new Date(lastPaymentDate).toLocaleDateString('pt-BR') : '',
+        progress.paid,
+        progress.total,
+        progress.percentage
+      ];
+    });
 
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    const url = URL.createObjectURL(blob);
-    link.setAttribute('href', url);
-    link.setAttribute('download', `participantes-grupo-${new Date().toISOString().split('T')[0]}.csv`);
-    link.style.visibility = 'hidden';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    const fileName = `participantes-grupo-${new Date().toISOString().split('T')[0]}`;
+
+    if (format === 'excel') {
+      // Criar workbook Excel
+      const wb = XLSX.utils.book_new();
+      
+      // Dados principais
+      const wsData = [headers, ...data];
+      const ws = XLSX.utils.aoa_to_sheet(wsData);
+      
+      // Configurar larguras das colunas
+      ws['!cols'] = [
+        { wch: 25 }, // Nome
+        { wch: 30 }, // Email
+        { wch: 15 }, // Telefone
+        { wch: 15 }, // Status Inscrição
+        { wch: 15 }, // Status Pagamento
+        { wch: 12 }, // Valor Pago
+        { wch: 12 }, // Valor Total
+        { wch: 12 }, // Valor Restante
+        { wch: 15 }, // Data Inscrição
+        { wch: 15 }, // Último Pagamento
+        { wch: 10 }, // Parcelas Pagas
+        { wch: 10 }, // Total Parcelas
+        { wch: 10 }  // Progresso
+      ];
+
+      // Adicionar planilha ao workbook
+      XLSX.utils.book_append_sheet(wb, ws, 'Participantes');
+
+      // Gerar arquivo Excel
+      XLSX.writeFile(wb, `${fileName}.xlsx`);
+      
+      toast({
+        title: 'Exportação concluída',
+        description: 'Planilha Excel gerada com sucesso!',
+      });
+    } else {
+      // Exportar CSV
+      const csvContent = [headers, ...data]
+        .map(row => row.map(field => `"${field}"`).join(','))
+        .join('\n');
+
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      const url = URL.createObjectURL(blob);
+      link.setAttribute('href', url);
+      link.setAttribute('download', `${fileName}.csv`);
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      toast({
+        title: 'Exportação concluída',
+        description: 'Arquivo CSV gerado com sucesso!',
+      });
+    }
   };
 
   const getStatusBadge = (status: string) => {
@@ -295,6 +379,83 @@ export default function GroupParticipants({ groupId, onUpdate, eventData }: Grou
   const openPaymentConfirmation = (installment: any) => {
     setInstallmentToConfirm(installment);
     setShowPaymentConfirmation(true);
+  };
+
+  // Função para abrir modal de edição de participante
+  const openEditParticipant = (participant: Participant) => {
+    setParticipantToEdit(participant);
+    setEditFormData({
+      firstName: participant.firstName,
+      lastName: participant.lastName,
+      email: participant.email,
+      phone: participant.phone || ''
+    });
+    setShowEditParticipant(true);
+  };
+
+  // Função para salvar edição do participante
+  const saveParticipantEdit = async () => {
+    if (!participantToEdit) return;
+
+    try {
+      const response = await apiRequest('PUT', `/api/groups/${groupId}/participants/${participantToEdit.id}`, {
+        firstName: editFormData.firstName,
+        lastName: editFormData.lastName,
+        email: editFormData.email,
+        phone: editFormData.phone
+      });
+
+      if (response.ok) {
+        toast({
+          title: 'Participante atualizado',
+          description: 'Os dados do participante foram atualizados com sucesso.',
+        });
+        
+        setShowEditParticipant(false);
+        setParticipantToEdit(null);
+        loadParticipants(); // Recarregar lista
+        onUpdate?.(); // Notificar componente pai se necessário
+      } else {
+        throw new Error('Erro ao atualizar participante');
+      }
+    } catch (error) {
+      console.error('Erro ao atualizar participante:', error);
+      toast({
+        title: 'Erro',
+        description: 'Não foi possível atualizar os dados do participante.',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  // Função para remover inscrição do participante
+  const removeParticipantRegistration = async () => {
+    if (!participantToEdit) return;
+
+    try {
+      const response = await apiRequest('DELETE', `/api/groups/${groupId}/participants/${participantToEdit.id}`);
+
+      if (response.ok) {
+        toast({
+          title: 'Inscrição removida',
+          description: 'A inscrição do participante foi removida com sucesso.',
+        });
+        
+        setShowEditParticipant(false);
+        setParticipantToEdit(null);
+        loadParticipants(); // Recarregar lista
+        onUpdate?.(); // Notificar componente pai se necessário
+      } else {
+        throw new Error('Erro ao remover inscrição');
+      }
+    } catch (error) {
+      console.error('Erro ao remover inscrição:', error);
+      toast({
+        title: 'Erro',
+        description: 'Não foi possível remover a inscrição do participante.',
+        variant: 'destructive',
+      });
+    }
   };
 
   // Função para marcar parcela como paga
@@ -532,6 +693,76 @@ export default function GroupParticipants({ groupId, onUpdate, eventData }: Grou
     window.open(whatsappUrl, '_blank');
   };
 
+  // Função para compartilhar QR code via WhatsApp
+  const shareQRCodeViaWhatsApp = async (installment: any, participant: Participant) => {
+    try {
+      // Gerar QR code
+      const QRCode = (await import('qrcode')).default;
+      const pixData = generatePixCopyPaste(installment, participant);
+      
+      const qrCodeDataUrl = await QRCode.toDataURL(pixData.pixCode, {
+        width: 300,
+        margin: 2,
+        color: {
+          dark: '#000000',
+          light: '#FFFFFF'
+        }
+      });
+
+      // Converter data URL para blob
+      const response = await fetch(qrCodeDataUrl);
+      const blob = await response.blob();
+      
+      // Criar arquivo temporário
+      const file = new File([blob], `pix-parcela-${installment.installmentNumber}.png`, {
+        type: 'image/png'
+      });
+
+      // Criar mensagem para WhatsApp
+      const message = `💰 *PIX - Parcela ${installment.installmentNumber}*\n\n` +
+                     `👤 Participante: ${participant.firstName} ${participant.lastName}\n` +
+                     `💰 Valor: R$ ${pixData.amount}\n` +
+                     `📅 Vencimento: ${new Date(installment.dueDate).toLocaleDateString('pt-BR')}\n` +
+                     `🔑 Identificador: ${pixData.pixIdentifier}\n\n` +
+                     `📋 *PIX Copia e Cola:*\n` +
+                     `${pixData.pixCode}\n\n` +
+                     `💡 *Instruções:*\n` +
+                     `1. Escaneie o QR code ou copie o código PIX\n` +
+                     `2. Confirme o valor e identifique a parcela\n` +
+                     `3. Realize o pagamento`;
+
+      // Tentar usar Web Share API se disponível
+      if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+        try {
+          await navigator.share({
+            title: `PIX - Parcela ${installment.installmentNumber}`,
+            text: message,
+            files: [file]
+          });
+          return;
+        } catch (error) {
+          console.log('Web Share API failed, falling back to WhatsApp URL');
+        }
+      }
+
+      // Fallback: abrir WhatsApp Web com mensagem
+      const whatsappUrl = `https://web.whatsapp.com/send?text=${encodeURIComponent(message)}`;
+      window.open(whatsappUrl, '_blank');
+      
+      toast({
+        title: 'QR Code gerado',
+        description: 'Abra o WhatsApp e envie a imagem do QR code junto com a mensagem.',
+      });
+    } catch (error) {
+      console.error('Erro ao compartilhar QR code:', error);
+      toast({
+        title: 'Erro',
+        description: 'Não foi possível gerar o QR code para compartilhamento.',
+        variant: 'destructive',
+      });
+    }
+  };
+
   if (loading) {
     return (
       <Card>
@@ -582,10 +813,26 @@ export default function GroupParticipants({ groupId, onUpdate, eventData }: Grou
               <RefreshCw className={`w-4 h-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
               Atualizar
             </Button>
-            <Button variant="outline" size="sm" onClick={exportParticipants}>
-              <Download className="w-4 h-4 mr-2" />
-              Exportar
-            </Button>
+            <div className="flex gap-1">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => exportParticipants('csv')}
+                title="Exportar como CSV"
+              >
+                <FileText className="w-4 h-4 mr-1" />
+                CSV
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => exportParticipants('excel')}
+                title="Exportar como Excel"
+              >
+                <FileSpreadsheet className="w-4 h-4 mr-1" />
+                Excel
+              </Button>
+            </div>
           </div>
         </div>
       </CardHeader>
@@ -674,7 +921,7 @@ export default function GroupParticipants({ groupId, onUpdate, eventData }: Grou
                         )}
                         <div className="flex items-center gap-2">
                           <Calendar className="w-3 h-3 flex-shrink-0" />
-                          <span>Inscrito em {new Date(participant.registrationDate).toLocaleDateString('pt-BR')}</span>
+                          <span>Inscrito em {new Date(participant.createdAt).toLocaleDateString('pt-BR')}</span>
                         </div>
                       </div>
                     </div>
@@ -725,6 +972,15 @@ export default function GroupParticipants({ groupId, onUpdate, eventData }: Grou
                       <Eye className="w-4 h-4 mr-1" />
                       Ver Detalhes
                     </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => openEditParticipant(participant)}
+                      className="w-full sm:w-auto"
+                    >
+                      <Edit className="w-4 h-4 mr-1" />
+                      Editar
+                    </Button>
                     {participant.installments && participant.installments.length > 0 && (
                       <div className="flex items-center gap-1 text-xs text-gray-500 justify-center sm:justify-start">
                         <Clock className="w-3 h-3" />
@@ -747,6 +1003,9 @@ export default function GroupParticipants({ groupId, onUpdate, eventData }: Grou
               <Users className="w-5 h-5" />
               Detalhes do Participante
             </DialogTitle>
+            <DialogDescription>
+              Visualize e gerencie as informações e pagamentos do participante
+            </DialogDescription>
           </DialogHeader>
           
           {selectedParticipant && (
@@ -782,7 +1041,7 @@ export default function GroupParticipants({ groupId, onUpdate, eventData }: Grou
                       <label className="text-sm font-medium text-gray-500">Data de Inscrição</label>
                       <p className="flex items-center gap-2">
                         <Calendar className="w-4 h-4" />
-                        {new Date(selectedParticipant.registrationDate).toLocaleDateString('pt-BR')}
+                        {new Date(selectedParticipant.createdAt).toLocaleDateString('pt-BR')}
                       </p>
                     </div>
                   </CardContent>
@@ -1023,6 +1282,9 @@ export default function GroupParticipants({ groupId, onUpdate, eventData }: Grou
               <QrCode className="w-5 h-5" />
               QR Code da Parcela
             </DialogTitle>
+            <DialogDescription>
+              Escaneie o QR Code para realizar o pagamento da parcela
+            </DialogDescription>
           </DialogHeader>
           
           {selectedInstallment && (
@@ -1077,14 +1339,22 @@ export default function GroupParticipants({ groupId, onUpdate, eventData }: Grou
               </div>
               
               {/* Botões de Ação */}
-              <div className="flex gap-2">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                 <Button
                   variant="outline"
                   onClick={() => shareInstallmentViaWhatsApp(selectedInstallment, selectedParticipant!)}
                   className="flex-1"
                 >
                   <MessageCircle className="w-4 h-4 mr-1" />
-                  Compartilhar via WhatsApp
+                  <span className="hidden sm:inline">Compartilhar</span>
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => shareQRCodeViaWhatsApp(selectedInstallment, selectedParticipant!)}
+                  className="flex-1"
+                >
+                  <QrCode className="w-4 h-4 mr-1" />
+                  <span className="hidden sm:inline">QR Code</span>
                 </Button>
                 <Button
                   variant="outline"
@@ -1098,7 +1368,7 @@ export default function GroupParticipants({ groupId, onUpdate, eventData }: Grou
                   className="flex-1"
                 >
                   <Share2 className="w-4 h-4 mr-1" />
-                  Copiar PIX
+                  <span className="hidden sm:inline">Copiar</span>
                 </Button>
               </div>
             </div>
@@ -1111,6 +1381,9 @@ export default function GroupParticipants({ groupId, onUpdate, eventData }: Grou
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>Confirmar Pagamento</DialogTitle>
+            <DialogDescription>
+              Confirme que o pagamento da parcela foi realizado
+            </DialogDescription>
           </DialogHeader>
           
           {installmentToConfirm && (
@@ -1147,6 +1420,91 @@ export default function GroupParticipants({ groupId, onUpdate, eventData }: Grou
                 >
                   <CheckCircle className="w-4 h-4 mr-1" />
                   Confirmar Pagamento
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal de Edição de Participante */}
+      <Dialog open={showEditParticipant} onOpenChange={setShowEditParticipant}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Edit className="w-5 h-5" />
+              Editar Participante
+            </DialogTitle>
+            <DialogDescription>
+              Atualize as informações do participante
+            </DialogDescription>
+          </DialogHeader>
+          
+          {participantToEdit && (
+            <div className="space-y-4">
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-sm font-medium text-gray-700 mb-1 block">Nome</label>
+                    <Input
+                      value={editFormData.firstName}
+                      onChange={(e) => setEditFormData(prev => ({ ...prev, firstName: e.target.value }))}
+                      placeholder="Nome"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-700 mb-1 block">Sobrenome</label>
+                    <Input
+                      value={editFormData.lastName}
+                      onChange={(e) => setEditFormData(prev => ({ ...prev, lastName: e.target.value }))}
+                      placeholder="Sobrenome"
+                    />
+                  </div>
+                </div>
+                
+                <div>
+                  <label className="text-sm font-medium text-gray-700 mb-1 block">Email</label>
+                  <Input
+                    type="email"
+                    value={editFormData.email}
+                    onChange={(e) => setEditFormData(prev => ({ ...prev, email: e.target.value }))}
+                    placeholder="email@exemplo.com"
+                  />
+                </div>
+                
+                <div>
+                  <label className="text-sm font-medium text-gray-700 mb-1 block">Telefone</label>
+                  <Input
+                    value={editFormData.phone}
+                    onChange={(e) => setEditFormData(prev => ({ ...prev, phone: e.target.value }))}
+                    placeholder="(11) 99999-9999"
+                  />
+                </div>
+              </div>
+              
+              <div className="flex gap-2 pt-4">
+                <Button
+                  variant="outline"
+                  onClick={() => setShowEditParticipant(false)}
+                  className="flex-1"
+                >
+                  Cancelar
+                </Button>
+                <Button
+                  variant="destructive"
+                  onClick={removeParticipantRegistration}
+                  className="flex-1"
+                >
+                  <Trash2 className="w-4 h-4 mr-1" />
+                  Remover Inscrição
+                </Button>
+                <Button
+                  variant="default"
+                  onClick={saveParticipantEdit}
+                  className="flex-1"
+                >
+                  <Edit className="w-4 h-4 mr-1" />
+                  Salvar
                 </Button>
               </div>
             </div>

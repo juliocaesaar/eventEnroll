@@ -50,7 +50,7 @@ export interface AddManagerData {
 }
 
 export const useEventGroups = (eventId: string) => {
-  const { user } = useAuth();
+  const { user, isLoading: authLoading } = useAuth();
   const queryClient = useQueryClient();
 
   const {
@@ -59,7 +59,7 @@ export const useEventGroups = (eventId: string) => {
     error,
   } = useQuery({
     queryKey: ['/api/events', eventId, 'groups'],
-    enabled: !!eventId && !!user,
+    enabled: !!eventId && !!user && !authLoading,
   });
 
   const createGroupMutation = useMutation({
@@ -115,7 +115,7 @@ export const useEventGroups = (eventId: string) => {
 };
 
 export const useGroupManagers = (groupId: string) => {
-  const { user } = useAuth();
+  const { user, isLoading: authLoading } = useAuth();
   const queryClient = useQueryClient();
 
   const {
@@ -124,7 +124,7 @@ export const useGroupManagers = (groupId: string) => {
     error,
   } = useQuery({
     queryKey: ['/api/groups', groupId, 'managers'],
-    enabled: !!groupId && !!user,
+    enabled: !!groupId && !!user && !authLoading,
   });
 
   const addManagerMutation = useMutation({
@@ -162,7 +162,7 @@ export const useGroupManagers = (groupId: string) => {
 };
 
 export const useGroupAnalytics = (groupId: string) => {
-  const { user } = useAuth();
+  const { user, isLoading: authLoading } = useAuth();
 
   const {
     data: analytics,
@@ -170,7 +170,7 @@ export const useGroupAnalytics = (groupId: string) => {
     error,
   } = useQuery({
     queryKey: ['/api/groups', groupId, 'analytics'],
-    enabled: !!groupId && !!user,
+    enabled: !!groupId && !!user && !authLoading,
   });
 
   return {

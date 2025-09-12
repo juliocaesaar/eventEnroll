@@ -99,7 +99,7 @@ export interface ApplyLateFeeData {
 }
 
 export const usePaymentPlans = (eventId: string) => {
-  const { user } = useAuth();
+  const { user, isLoading: authLoading } = useAuth();
   const queryClient = useQueryClient();
 
   const {
@@ -108,7 +108,7 @@ export const usePaymentPlans = (eventId: string) => {
     error,
   } = useQuery({
     queryKey: ['/api/events', eventId, 'payment-plans'],
-    enabled: !!eventId && !!user,
+    enabled: !!eventId && !!user && !authLoading,
   });
 
   const createPlanMutation = useMutation({
@@ -144,7 +144,7 @@ export const usePaymentPlans = (eventId: string) => {
 };
 
 export const usePaymentInstallments = (registrationId: string) => {
-  const { user } = useAuth();
+  const { user, isLoading: authLoading } = useAuth();
   const queryClient = useQueryClient();
 
   const {
@@ -153,7 +153,7 @@ export const usePaymentInstallments = (registrationId: string) => {
     error,
   } = useQuery({
     queryKey: ['/api/registrations', registrationId, 'installments'],
-    enabled: !!registrationId && !!user,
+    enabled: !!registrationId && !!user && !authLoading,
   });
 
   const processPaymentMutation = useMutation({
@@ -239,7 +239,7 @@ export const usePaymentInstallments = (registrationId: string) => {
 };
 
 export const usePaymentTransactions = (installmentId: string) => {
-  const { user } = useAuth();
+  const { user, isLoading: authLoading } = useAuth();
 
   const {
     data: transactions,
@@ -247,7 +247,7 @@ export const usePaymentTransactions = (installmentId: string) => {
     error,
   } = useQuery({
     queryKey: ['/api/installments', installmentId, 'transactions'],
-    enabled: !!installmentId && !!user,
+    enabled: !!installmentId && !!user && !authLoading,
   });
 
   return {
@@ -258,7 +258,7 @@ export const usePaymentTransactions = (installmentId: string) => {
 };
 
 export const usePaymentAnalytics = (eventId: string) => {
-  const { user } = useAuth();
+  const { user, isLoading: authLoading } = useAuth();
 
   const {
     data: analytics,
@@ -266,7 +266,7 @@ export const usePaymentAnalytics = (eventId: string) => {
     error,
   } = useQuery({
     queryKey: ['/api/events', eventId, 'payment-analytics'],
-    enabled: !!eventId && !!user,
+    enabled: !!eventId && !!user && !authLoading,
   });
 
   return {
@@ -277,7 +277,7 @@ export const usePaymentAnalytics = (eventId: string) => {
 };
 
 export const usePaymentReport = (eventId: string) => {
-  const { user } = useAuth();
+  const { user, isLoading: authLoading } = useAuth();
 
   const {
     data: report,
@@ -285,7 +285,7 @@ export const usePaymentReport = (eventId: string) => {
     error,
   } = useQuery({
     queryKey: ['/api/events', eventId, 'payment-report'],
-    enabled: !!eventId && !!user,
+    enabled: !!eventId && !!user && !authLoading,
   });
 
   return {
@@ -296,7 +296,7 @@ export const usePaymentReport = (eventId: string) => {
 };
 
 export const useOverdueInstallments = (eventId?: string) => {
-  const { user } = useAuth();
+  const { user, isLoading: authLoading } = useAuth();
   const queryClient = useQueryClient();
 
   const {
@@ -305,7 +305,7 @@ export const useOverdueInstallments = (eventId?: string) => {
     error,
   } = useQuery({
     queryKey: ['/api/overdue-installments', eventId],
-    enabled: !!user,
+    enabled: !!user && !authLoading,
   });
 
   const recalculateLateFeesMutation = useMutation({

@@ -20,7 +20,10 @@ import {
   Eye,
   Share2,
   MessageCircle,
-  Calendar
+  Calendar,
+  Phone,
+  Edit,
+  Trash2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -29,7 +32,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
 
 export default function Participants() {
   const { user } = useAuth();
@@ -45,6 +48,14 @@ export default function Participants() {
   const [qrCodeDataUrl, setQrCodeDataUrl] = useState<string>('');
   const [showPaymentConfirmation, setShowPaymentConfirmation] = useState(false);
   const [installmentToConfirm, setInstallmentToConfirm] = useState<any>(null);
+  const [showEditParticipant, setShowEditParticipant] = useState(false);
+  const [participantToEdit, setParticipantToEdit] = useState<any>(null);
+  const [editFormData, setEditFormData] = useState({
+    firstName: '',
+    lastName: '',
+    email: '',
+    phone: ''
+  });
 
   // Fetch event details
   const { data: event } = useQuery({
@@ -226,6 +237,81 @@ export default function Participants() {
   const openPaymentConfirmation = (installment: any) => {
     setInstallmentToConfirm(installment);
     setShowPaymentConfirmation(true);
+  };
+
+  // Função para abrir modal de edição de participante
+  const openEditParticipant = (participant: any) => {
+    setParticipantToEdit(participant);
+    setEditFormData({
+      firstName: participant.firstName || participant.attendeeName || '',
+      lastName: participant.lastName || '',
+      email: participant.email || participant.attendeeEmail || '',
+      phone: participant.phoneNumber || participant.attendeePhone || ''
+    });
+    setShowEditParticipant(true);
+  };
+
+  // Função para salvar edição do participante
+  const saveParticipantEdit = async () => {
+    if (!participantToEdit) return;
+
+    try {
+      const response = await apiRequest('PUT', `/api/events/${params.eventId}/registrations/${participantToEdit.id}`, {
+        firstName: editFormData.firstName,
+        lastName: editFormData.lastName,
+        email: editFormData.email,
+        phoneNumber: editFormData.phone
+      });
+
+      if (response.ok) {
+        toast({
+          title: 'Participante atualizado',
+          description: 'Os dados do participante foram atualizados com sucesso.',
+        });
+        
+        setShowEditParticipant(false);
+        setParticipantToEdit(null);
+        refetchRegistrations(); // Recarregar lista
+      } else {
+        throw new Error('Erro ao atualizar participante');
+      }
+    } catch (error) {
+      console.error('Erro ao atualizar participante:', error);
+      toast({
+        title: 'Erro',
+        description: 'Não foi possível atualizar os dados do participante.',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  // Função para remover inscrição do participante
+  const removeParticipantRegistration = async () => {
+    if (!participantToEdit) return;
+
+    try {
+      const response = await apiRequest('DELETE', `/api/events/${params.eventId}/registrations/${participantToEdit.id}`);
+
+      if (response.ok) {
+        toast({
+          title: 'Inscrição removida',
+          description: 'A inscrição do participante foi removida com sucesso.',
+        });
+        
+        setShowEditParticipant(false);
+        setParticipantToEdit(null);
+        refetchRegistrations(); // Recarregar lista
+      } else {
+        throw new Error('Erro ao remover inscrição');
+      }
+    } catch (error) {
+      console.error('Erro ao remover inscrição:', error);
+      toast({
+        title: 'Erro',
+        description: 'Não foi possível remover a inscrição do participante.',
+        variant: 'destructive',
+      });
+    }
   };
 
   // Função para marcar parcela como paga
@@ -695,43 +781,57 @@ export default function Participants() {
                 </p>
               </div>
             ) : (
-              <div className="grid gap-4">
+              <div className="space-y-4">
                 {filteredRegistrations.map((participant: any) => (
-                  <Card key={participant.id} className="p-4">
-                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                      {/* Informações do Participante */}
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-3 mb-2">
-                          <div className="flex-1 min-w-0">
-                            <h3 className="font-medium text-gray-900 truncate">
-                              {participant.firstName || participant.attendeeName} {participant.lastName}
-                            </h3>
-                            <p className="text-sm text-gray-600 truncate">{participant.email || participant.attendeeEmail}</p>
+                  <div key={participant.id} className="border rounded-lg p-4 hover:bg-muted/50 transition-colors">
+                    <div className="space-y-4">
+                      {/* Header com avatar e nome */}
+                      <div className="flex items-start gap-3">
+                        <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
+                          <span className="text-blue-600 font-semibold text-sm">
+                            {(participant.firstName || participant.attendeeName || 'U')[0]}{(participant.lastName || '')[0]}
+                          </span>
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <h3 className="font-semibold text-lg text-gray-900 mb-1">
+                            {participant.firstName || participant.attendeeName} {participant.lastName}
+                          </h3>
+                          <div className="space-y-1 text-sm text-gray-600">
+                            <div className="flex items-center gap-2">
+                              <Mail className="w-3 h-3 flex-shrink-0" />
+                              <span className="truncate">{participant.email || participant.attendeeEmail}</span>
+                            </div>
                             {(participant.phoneNumber || participant.attendeePhone) && (
-                              <p className="text-sm text-gray-500 truncate">{participant.phoneNumber || participant.attendeePhone}</p>
+                              <div className="flex items-center gap-2">
+                                <Phone className="w-3 h-3 flex-shrink-0" />
+                                <span className="truncate">{participant.phoneNumber || participant.attendeePhone}</span>
+                              </div>
                             )}
+                            <div className="flex items-center gap-2">
+                              <Calendar className="w-3 h-3 flex-shrink-0" />
+                              <span>Inscrito em {new Date(participant.createdAt).toLocaleDateString('pt-BR')}</span>
+                            </div>
                           </div>
                         </div>
-                        
-                        <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+                      </div>
+
+                      {/* Status e pagamento */}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div className="space-y-2">
                           <div className="flex items-center gap-2">
-                            <span className="text-sm text-gray-500">Status:</span>
+                            <span className="text-sm font-medium text-gray-700">Status:</span>
                             {getStatusBadge(participant.status)}
                           </div>
                           <div className="flex items-center gap-2">
-                            <span className="text-sm text-gray-500">Pagamento:</span>
+                            <span className="text-sm font-medium text-gray-700">Pagamento:</span>
                             {getPaymentBadge(calculateRegistrationStatus(participant))}
                           </div>
+                        </div>
+                        <div className="space-y-2">
                           <div className="flex items-center gap-2">
                             <DollarSign className="w-3 h-3 text-gray-500" />
                             <span className="text-sm">
                               R$ {calculatePaymentAmounts(participant).amountPaid.toFixed(2)} / R$ {calculatePaymentAmounts(participant).totalAmount.toFixed(2)}
-                            </span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <Calendar className="w-3 h-3 text-gray-500" />
-                            <span className="text-sm text-gray-600">
-                              {new Date(participant.createdAt).toLocaleDateString('pt-BR')}
                             </span>
                           </div>
                           {getLastPaymentDate(participant) && (
@@ -745,28 +845,35 @@ export default function Participants() {
                         </div>
                       </div>
 
-                      {/* Ações */}
-                      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
-                        <div className="flex gap-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => setSelectedParticipant(participant)}
-                            className="flex items-center gap-1"
-                          >
-                            <Eye className="w-4 h-4" />
-                            Detalhes
-                          </Button>
-                        </div>
+                      {/* Botões de ação */}
+                      <div className="flex flex-col sm:flex-row gap-2 pt-2 border-t border-gray-100">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setSelectedParticipant(participant)}
+                          className="w-full sm:w-auto"
+                        >
+                          <Eye className="w-4 h-4 mr-1" />
+                          Ver Detalhes
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => openEditParticipant(participant)}
+                          className="w-full sm:w-auto"
+                        >
+                          <Edit className="w-4 h-4 mr-1" />
+                          Editar
+                        </Button>
                         {participant.installments && participant.installments.length > 0 && (
                           <div className="flex items-center gap-1 text-xs text-gray-500 justify-center sm:justify-start">
                             <Clock className="w-3 h-3" />
-                            <span>Status automático</span>
+                            <span>Status automático baseado em parcelas</span>
                           </div>
                         )}
                       </div>
                     </div>
-                  </Card>
+                  </div>
                 ))}
               </div>
             )}
@@ -1077,6 +1184,91 @@ export default function Participants() {
                   >
                     <CheckCircle className="w-4 h-4 mr-1" />
                     Confirmar Pagamento
+                  </Button>
+                </div>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
+
+        {/* Modal de Edição de Participante */}
+        <Dialog open={showEditParticipant} onOpenChange={setShowEditParticipant}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Edit className="w-5 h-5" />
+                Editar Participante
+              </DialogTitle>
+              <DialogDescription>
+                Atualize as informações do participante
+              </DialogDescription>
+            </DialogHeader>
+            
+            {participantToEdit && (
+              <div className="space-y-4">
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-sm font-medium text-gray-700 mb-1 block">Nome</label>
+                      <Input
+                        value={editFormData.firstName}
+                        onChange={(e) => setEditFormData(prev => ({ ...prev, firstName: e.target.value }))}
+                        placeholder="Nome"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-gray-700 mb-1 block">Sobrenome</label>
+                      <Input
+                        value={editFormData.lastName}
+                        onChange={(e) => setEditFormData(prev => ({ ...prev, lastName: e.target.value }))}
+                        placeholder="Sobrenome"
+                      />
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <label className="text-sm font-medium text-gray-700 mb-1 block">Email</label>
+                    <Input
+                      type="email"
+                      value={editFormData.email}
+                      onChange={(e) => setEditFormData(prev => ({ ...prev, email: e.target.value }))}
+                      placeholder="email@exemplo.com"
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="text-sm font-medium text-gray-700 mb-1 block">Telefone</label>
+                    <Input
+                      value={editFormData.phone}
+                      onChange={(e) => setEditFormData(prev => ({ ...prev, phone: e.target.value }))}
+                      placeholder="(11) 99999-9999"
+                    />
+                  </div>
+                </div>
+                
+                <div className="flex gap-2 pt-4">
+                  <Button
+                    variant="outline"
+                    onClick={() => setShowEditParticipant(false)}
+                    className="flex-1"
+                  >
+                    Cancelar
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    onClick={removeParticipantRegistration}
+                    className="flex-1"
+                  >
+                    <Trash2 className="w-4 h-4 mr-1" />
+                    Remover Inscrição
+                  </Button>
+                  <Button
+                    variant="default"
+                    onClick={saveParticipantEdit}
+                    className="flex-1"
+                  >
+                    <Edit className="w-4 h-4 mr-1" />
+                    Salvar
                   </Button>
                 </div>
               </div>

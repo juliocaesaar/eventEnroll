@@ -54,6 +54,7 @@ import Login from "@/pages/login";
 import Register from "@/pages/register";
 import Logout from "@/pages/logout";
 import PaymentConfirmation from "@/pages/payment-confirmation";
+import Profile from "@/pages/profile";
 
 // Wrapper components for authenticated pages
 const AuthenticatedPage = ({ children }: { children: React.ReactNode }) => (
@@ -268,6 +269,11 @@ function Router() {
           <Route path="/groups/:groupId/participants/:participantId" component={ParticipantDetailsPage} />
           <Route path="/admin/users" component={UserManagementPage} />
           <Route path="/admin/roles" component={RoleManagementPage} />
+          <Route path="/profile" component={() => (
+            <AuthenticatedPage>
+              <Profile />
+            </AuthenticatedPage>
+          )} />
           {process.env.NODE_ENV === 'development' && (
             <Route path="/pix-test" component={PIXTestPage} />
           )}

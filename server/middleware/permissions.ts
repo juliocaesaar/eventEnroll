@@ -61,13 +61,20 @@ export const requireEventOrganizer = (req: PermissionRequest, res: Response, nex
   }
 
   // Verificar se o usuário é organizador do evento
-  storage.getEvent(eventId).then(event => {
+  storage.getEvent(eventId).then(async event => {
     if (!event) {
       return res.status(404).json({ error: 'Evento não encontrado' });
     }
 
-    if (event.organizerId !== req.user?.userId) {
-      return res.status(403).json({ error: 'Acesso negado. Apenas o organizador do evento pode acessar esta funcionalidade.' });
+    // Verificar se é organizador principal
+    const isMainOrganizer = event.organizerId === req.user?.userId;
+    
+    // Verificar se é organizador adicional
+    const organizers = await storage.getEventOrganizers(eventId);
+    const isAdditionalOrganizer = organizers.some(org => org.userId === req.user?.userId);
+
+    if (!isMainOrganizer && !isAdditionalOrganizer) {
+      return res.status(403).json({ error: 'Acesso negado. Apenas organizadores do evento podem acessar esta funcionalidade.' });
     }
 
     req.isEventOrganizer = true;

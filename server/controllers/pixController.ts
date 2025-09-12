@@ -87,17 +87,19 @@ export class PixController {
           status: 'paid',
           paidAt: new Date(),
           paymentProof: paymentProof || null,
-          amountPaid: amount || installment.amount
+          paidAmount: amount || installment.amount
         });
 
-        // Atualizar valores da inscrição
-        const currentAmountPaid = parseFloat(registration.amountPaid || '0');
-        const installmentAmount = parseFloat(amount || installment.amount);
-        const newAmountPaid = currentAmountPaid + installmentAmount;
-        const remainingAmount = parseFloat(registration.totalAmount || '0') - newAmountPaid;
+        // Recalcular o total pago baseado em todas as parcelas pagas
+        const allInstallments = await storage.getRegistrationInstallments(registrationId);
+        const totalPaid = allInstallments
+          .filter(inst => inst.status === 'paid')
+          .reduce((sum, inst) => sum + parseFloat(inst.paidAmount || '0'), 0);
+        
+        const remainingAmount = parseFloat(registration.totalAmount || '0') - totalPaid;
 
         await storage.updateRegistration(registrationId, {
-          amountPaid: newAmountPaid.toFixed(2),
+          amountPaid: totalPaid.toFixed(2),
           remainingAmount: remainingAmount.toFixed(2),
           paymentStatus: remainingAmount <= 0 ? 'paid' : 'partial_paid'
         });

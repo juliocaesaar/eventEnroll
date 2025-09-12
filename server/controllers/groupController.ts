@@ -113,10 +113,16 @@ export class GroupController {
         return res.status(404).json({ error: 'Evento não encontrado' });
       }
 
-      // Verificar se é organizador ou gestor de algum grupo
-      const isOrganizer = event.organizerId === userId;
-      console.log('Is organizer:', isOrganizer);
+      // Verificar se é organizador principal
+      const isMainOrganizer = event.organizerId === userId;
+      console.log('Is main organizer:', isMainOrganizer);
       
+      // Verificar se é organizador adicional
+      const organizers = await storage.getEventOrganizers(eventId);
+      const isAdditionalOrganizer = organizers.some(org => org.userId === userId);
+      console.log('Is additional organizer:', isAdditionalOrganizer);
+      
+      // Verificar se é gestor de algum grupo do evento
       const userGroupManagers = await storage.getUserGroupManagers(userId);
       console.log('User group managers:', userGroupManagers.length);
       
@@ -126,7 +132,7 @@ export class GroupController {
       });
       console.log('Has group access:', hasGroupAccess);
 
-      if (!isOrganizer && !hasGroupAccess) {
+      if (!isMainOrganizer && !isAdditionalOrganizer && !hasGroupAccess) {
         console.log('ERROR: Acesso negado - não é organizador nem gestor');
         return res.status(403).json({ error: 'Acesso negado' });
       }
@@ -205,8 +211,19 @@ export class GroupController {
 
       // Verificar se o usuário é organizador do evento
       const event = await storage.getEvent(group.eventId);
-      if (!event || event.organizerId !== currentUserId) {
-        return res.status(403).json({ error: 'Acesso negado' });
+      if (!event) {
+        return res.status(404).json({ error: 'Evento não encontrado' });
+      }
+
+      // Verificar se é organizador principal
+      const isMainOrganizer = event.organizerId === currentUserId;
+      
+      // Verificar se é organizador adicional
+      const organizers = await storage.getEventOrganizers(event.id);
+      const isAdditionalOrganizer = organizers.some(org => org.userId === currentUserId);
+      
+      if (!isMainOrganizer && !isAdditionalOrganizer) {
+        return res.status(403).json({ error: 'Acesso negado - apenas organizadores podem adicionar gestores' });
       }
 
       // Verificar se o usuário a ser adicionado existe
@@ -228,7 +245,7 @@ export class GroupController {
         groupId,
         userId: managerUserId,
         role: role || 'manager',
-        permissions: permissions || ['read', 'write', 'participants', 'payments'], // Permissões padrão para gestores
+        permissions: permissions || { read: true, write: true, participants: true, payments: true }, // Permissões padrão para gestores
         assignedAt: new Date(),
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -427,7 +444,6 @@ export class GroupController {
         
         for (const event of userEvents) {
           const eventGroups = await storage.getEventGroups(event.id);
-          
           for (const group of eventGroups) {
             const participants = await storage.getGroupParticipants(group.id);
             const currentParticipants = participants.length;
@@ -605,6 +621,102 @@ export class GroupController {
       res.json(participant);
     } catch (error) {
       console.error('Erro ao obter participante do grupo:', error);
+      res.status(500).json({ error: 'Erro interno do servidor' });
+    }
+  }
+
+  /**
+   * Atualizar dados de um participante
+   */
+  static async updateGroupParticipant(req: Request, res: Response) {
+    try {
+      console.log('=== UPDATE GROUP PARTICIPANT ===');
+      const { groupId, participantId } = req.params;
+      const userId = (req as any).user?.userId;
+      const { firstName, lastName, email, phone } = req.body;
+
+      console.log('GroupId:', groupId);
+      console.log('ParticipantId:', participantId);
+      console.log('UserId:', userId);
+      console.log('Update data:', { firstName, lastName, email, phone });
+
+      if (!userId) {
+        console.log('ERROR: Usuário não autenticado');
+        return res.status(401).json({ error: 'Usuário não autenticado' });
+      }
+
+      // Verificar se o usuário tem acesso ao grupo
+      const hasAccess = await storage.checkUserGroupAccess(userId, groupId);
+      if (!hasAccess) {
+        console.log('ERROR: Acesso negado ao grupo');
+        return res.status(403).json({ error: 'Acesso negado ao grupo' });
+      }
+
+      // Verificar se o participante existe
+      const participant = await storage.getGroupParticipantById(groupId, participantId);
+      if (!participant) {
+        console.log('ERROR: Participante não encontrado');
+        return res.status(404).json({ error: 'Participante não encontrado' });
+      }
+
+      // Atualizar dados do participante
+      const updatedParticipant = await storage.updateRegistration(participantId, {
+        firstName,
+        lastName,
+        email,
+        phoneNumber: phone
+      });
+
+      console.log('Participant updated successfully');
+      res.json({ 
+        message: 'Participante atualizado com sucesso',
+        participant: updatedParticipant 
+      });
+    } catch (error) {
+      console.error('Erro ao atualizar participante do grupo:', error);
+      res.status(500).json({ error: 'Erro interno do servidor' });
+    }
+  }
+
+  /**
+   * Remover inscrição de um participante
+   */
+  static async removeGroupParticipant(req: Request, res: Response) {
+    try {
+      console.log('=== REMOVE GROUP PARTICIPANT ===');
+      const { groupId, participantId } = req.params;
+      const userId = (req as any).user?.userId;
+
+      console.log('GroupId:', groupId);
+      console.log('ParticipantId:', participantId);
+      console.log('UserId:', userId);
+
+      if (!userId) {
+        console.log('ERROR: Usuário não autenticado');
+        return res.status(401).json({ error: 'Usuário não autenticado' });
+      }
+
+      // Verificar se o usuário tem acesso ao grupo
+      const hasAccess = await storage.checkUserGroupAccess(userId, groupId);
+      if (!hasAccess) {
+        console.log('ERROR: Acesso negado ao grupo');
+        return res.status(403).json({ error: 'Acesso negado ao grupo' });
+      }
+
+      // Verificar se o participante existe
+      const participant = await storage.getGroupParticipantById(groupId, participantId);
+      if (!participant) {
+        console.log('ERROR: Participante não encontrado');
+        return res.status(404).json({ error: 'Participante não encontrado' });
+      }
+
+      // Remover inscrição
+      await storage.deleteRegistration(participantId);
+
+      console.log('Participant removed successfully');
+      res.json({ message: 'Inscrição removida com sucesso' });
+    } catch (error) {
+      console.error('Erro ao remover participante do grupo:', error);
       res.status(500).json({ error: 'Erro interno do servidor' });
     }
   }

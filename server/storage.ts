@@ -49,7 +49,7 @@ import {
   type InsertNotificationPreference,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc, and, gte, lte, sql, isNull } from "drizzle-orm";
+import { eq, desc, and, gte, lte, sql, isNull, or } from "drizzle-orm";
 
 export interface IStorage {
   // User operations (required for Replit Auth)
@@ -90,6 +90,7 @@ export interface IStorage {
   getEventRegistrations(eventId: string): Promise<Registration[]>;
   getUserRegistrations(userId: string): Promise<Registration[]>;
   getRegistration(id: string): Promise<Registration | undefined>;
+  deleteRegistration(id: string): Promise<void>;
   
   // Template operations
   createTemplate(template: InsertTemplate): Promise<Template>;
@@ -102,7 +103,7 @@ export interface IStorage {
   createEventCategory(category: InsertEventCategory): Promise<EventCategory>;
   
   // Analytics operations
-  getUserStats(userId: string): Promise<{
+  getUserStats(userId: string, userRole?: string): Promise<{
     totalEvents: number;
     totalParticipants: number;
     totalRevenue: string;
@@ -139,10 +140,12 @@ export interface IStorage {
   getEventOrganizers(eventId: string): Promise<EventOrganizer[]>;
   getUserEventOrganizers(userId: string): Promise<(EventOrganizer & { event?: Event })[]>;
   deleteEventOrganizer(id: string): Promise<void>;
+  isEventOrganizer(eventId: string, userId: string): Promise<boolean>;
 
   // Group Dashboard operations
   getGroupParticipants(groupId: string): Promise<any[]>;
   getGroupPendingPayments(groupId: string): Promise<number>;
+  getGroupPendingPaymentsAmount(groupId: string): Promise<number>;
   getGroupTotalRevenue(groupId: string): Promise<number>;
   getGroupOverduePayments(groupId: string): Promise<number>;
   getGroupConfirmedParticipants(groupId: string): Promise<number>;
@@ -349,11 +352,55 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getUserEvents(userId: string): Promise<Event[]> {
-    return await db
+    // Buscar eventos onde o usuário é organizador principal
+    const mainOrganizerEvents = await db
       .select()
       .from(events)
       .where(eq(events.organizerId, userId))
       .orderBy(desc(events.createdAt));
+
+    // Buscar eventos onde o usuário é organizador adicional
+    const additionalOrganizerEvents = await db
+      .select({
+        id: events.id,
+        organizerId: events.organizerId,
+        title: events.title,
+        description: events.description,
+        slug: events.slug,
+        categoryId: events.categoryId,
+        startDate: events.startDate,
+        endDate: events.endDate,
+        timezone: events.timezone,
+        venueName: events.venueName,
+        venueAddress: events.venueAddress,
+        onlineUrl: events.onlineUrl,
+        capacity: events.capacity,
+        status: events.status,
+        templateId: events.templateId,
+        customDomain: events.customDomain,
+        seoSettings: events.seoSettings,
+        pageComponents: events.pageComponents,
+        imageUrl: events.imageUrl,
+        whatsappNumber: events.whatsappNumber,
+        pixUrl: events.pixUrl,
+        pixKeyType: events.pixKeyType,
+        pixKey: events.pixKey,
+        pixInstallments: events.pixInstallments,
+        createdAt: events.createdAt,
+        updatedAt: events.updatedAt
+      })
+      .from(events)
+      .innerJoin(eventOrganizers, eq(events.id, eventOrganizers.eventId))
+      .where(eq(eventOrganizers.userId, userId))
+      .orderBy(desc(events.createdAt));
+
+    // Combinar e remover duplicatas (caso o usuário seja organizador principal e adicional do mesmo evento)
+    const allEvents = [...mainOrganizerEvents, ...additionalOrganizerEvents];
+    const uniqueEvents = allEvents.filter((event, index, self) => 
+      index === self.findIndex(e => e.id === event.id)
+    );
+
+    return uniqueEvents;
   }
 
   async deleteEvent(id: string): Promise<void> {
@@ -406,6 +453,14 @@ export class DatabaseStorage implements IStorage {
       .returning();
     return registration;
   }
+
+  async deleteRegistration(id: string): Promise<void> {
+    // Primeiro, deletar todas as parcelas relacionadas
+    await db.delete(paymentInstallments).where(eq(paymentInstallments.registrationId, id));
+    
+    // Depois, deletar a inscrição
+    await db.delete(registrations).where(eq(registrations.id, id));
+  }
   
   async getEventAnalytics(eventId: string): Promise<any> {
     // Get registrations and calculate analytics
@@ -413,7 +468,23 @@ export class DatabaseStorage implements IStorage {
     const tickets = await this.getEventTickets(eventId);
     
     const totalRegistrations = registrations.length;
-    const totalRevenue = registrations.reduce((sum: number, reg: any) => sum + parseFloat(reg.amount || 0), 0);
+    
+    // Calcular receita real baseada nas parcelas pagas
+    const revenueStats = await db
+      .select({
+        revenue: sql<number>`COALESCE(SUM(${paymentInstallments.paidAmount}), 0)`
+      })
+      .from(paymentInstallments)
+      .innerJoin(registrations, eq(paymentInstallments.registrationId, registrations.id))
+      .where(
+        and(
+          eq(registrations.eventId, eventId),
+          eq(paymentInstallments.status, 'paid'),
+          sql`${registrations.status} IN ('confirmed', 'pending_payment')`
+        )
+      );
+    
+    const totalRevenue = Number(revenueStats[0]?.revenue || 0);
     const avgTicketValue = totalRevenue / (totalRegistrations || 1);
     
     return {
@@ -506,36 +577,112 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Analytics operations
-  async getUserStats(userId: string): Promise<{
+  async getUserStats(userId: string, userRole?: string): Promise<{
     totalEvents: number;
     totalParticipants: number;
     totalRevenue: string;
     conversionRate: string;
   }> {
-    // Get total events
-    const eventCount = await db
-      .select({ count: sql<number>`count(*)` })
-      .from(events)
-      .where(eq(events.organizerId, userId));
+    console.log('=== GET USER STATS ===');
+    console.log('UserId:', userId);
+    console.log('UserRole:', userRole);
 
-    // Get total participants and revenue
-    const registrationStats = await db
-      .select({
-        count: sql<number>`count(*)`,
-        revenue: sql<number>`sum(${registrations.amountPaid})`
-      })
+
+    // Determinar filtro baseado no papel do usuário
+    let eventFilter;
+    if (userRole === 'admin') {
+      // Admin vê todos os eventos
+      eventFilter = undefined;
+      console.log('Admin user - showing all events');
+    } else {
+      // Organizador vê eventos onde é organizador principal OU adicional
+      eventFilter = or(
+        eq(events.organizerId, userId),
+        sql`EXISTS (SELECT 1 FROM event_organizers WHERE event_organizers.event_id = events.id AND event_organizers.user_id = ${userId})`
+      );
+      console.log('Organizer user - showing own events (main + additional)');
+    }
+
+    // Get total events - considerar organizador principal E adicional
+    let eventCount;
+    if (userRole === 'admin') {
+      // Admin vê todos os eventos
+      eventCount = await db
+        .select({ count: sql<number>`count(DISTINCT ${events.id})` })
+        .from(events);
+    } else {
+      // Organizador vê eventos onde é organizador principal OU adicional
+      const mainOrganizerCount = await db
+        .select({ count: sql<number>`count(DISTINCT ${events.id})` })
+        .from(events)
+        .where(eq(events.organizerId, userId));
+      
+      const additionalOrganizerCount = await db
+        .select({ count: sql<number>`count(DISTINCT ${events.id})` })
+        .from(events)
+        .innerJoin(eventOrganizers, eq(events.id, eventOrganizers.eventId))
+        .where(eq(eventOrganizers.userId, userId));
+      
+      // Somar os dois (pode haver duplicatas, mas o DISTINCT resolve)
+      const totalMain = Number(mainOrganizerCount[0]?.count || 0);
+      const totalAdditional = Number(additionalOrganizerCount[0]?.count || 0);
+      
+      // Para evitar duplicatas, vamos fazer uma consulta mais complexa
+      const combinedCount = await db
+        .select({ count: sql<number>`count(DISTINCT ${events.id})` })
+        .from(events)
+        .leftJoin(eventOrganizers, eq(events.id, eventOrganizers.eventId))
+        .where(
+          or(
+            eq(events.organizerId, userId),
+            eq(eventOrganizers.userId, userId)
+          )
+        );
+      
+      eventCount = combinedCount;
+    }
+    console.log('Event count result:', eventCount);
+
+    // Get total participants - apenas inscrições ativas
+    const participantCountQuery = db
+      .select({ count: sql<number>`count(DISTINCT ${registrations.id})` })
       .from(registrations)
       .innerJoin(events, eq(registrations.eventId, events.id))
       .where(
         and(
-          eq(events.organizerId, userId),
-          eq(registrations.paymentStatus, 'paid')
+          eventFilter || sql`1=1`, // Se não há filtro, usar condição sempre verdadeira
+          sql`${registrations.status} IN ('confirmed', 'pending_payment')`
         )
       );
+    
+    const participantCount = await participantCountQuery;
+    console.log('Participant count result:', participantCount);
 
-    const totalEvents = eventCount[0]?.count || 0;
-    const totalParticipants = registrationStats[0]?.count || 0;
-    const totalRevenue = registrationStats[0]?.revenue || 0;
+    // Get total revenue - soma das parcelas pagas
+    const revenueStatsQuery = db
+      .select({
+        revenue: sql<number>`COALESCE(SUM(${paymentInstallments.paidAmount}), 0)`
+      })
+      .from(paymentInstallments)
+      .innerJoin(registrations, eq(paymentInstallments.registrationId, registrations.id))
+      .innerJoin(events, eq(registrations.eventId, events.id))
+      .where(
+        and(
+          eventFilter || sql`1=1`, // Se não há filtro, usar condição sempre verdadeira
+          eq(paymentInstallments.status, 'paid'),
+          sql`${registrations.status} IN ('confirmed', 'pending_payment')`
+        )
+      );
+    
+    const revenueStats = await revenueStatsQuery;
+    console.log('Revenue stats result:', revenueStats);
+
+    const totalEvents = Number(eventCount[0]?.count || 0);
+    const totalParticipants = Number(participantCount[0]?.count || 0);
+    const totalRevenue = Number(revenueStats[0]?.revenue || 0);
+
+    console.log('Final stats:', { totalEvents, totalParticipants, totalRevenue });
+    console.log('=== END GET USER STATS ===');
 
     return {
       totalEvents,
@@ -1110,7 +1257,13 @@ export class DatabaseStorage implements IStorage {
     const participants = await db
       .select()
       .from(registrations)
-      .where(eq(registrations.groupId, groupId))
+      .where(
+        and(
+          eq(registrations.groupId, groupId),
+          // Filtrar apenas inscrições ativas
+          sql`${registrations.status} IN ('confirmed', 'pending_payment')`
+        )
+      )
       .orderBy(desc(registrations.createdAt));
     
     // Carregar parcelas para cada participante
@@ -1260,10 +1413,29 @@ export class DatabaseStorage implements IStorage {
       .where(
         and(
           eq(registrations.groupId, groupId),
-          eq(paymentInstallments.status, 'pending')
+          eq(paymentInstallments.status, 'pending'),
+          // Filtrar apenas inscrições ativas (não canceladas)
+          sql`${registrations.status} IN ('confirmed', 'pending_payment')`
         )
       );
-    return result[0]?.count || 0;
+    
+    return Number(result[0]?.count || 0);
+  }
+
+  async getGroupPendingPaymentsAmount(groupId: string): Promise<number> {
+    const result = await db
+      .select({ total: sql<number>`coalesce(sum(${paymentInstallments.remainingAmount}), 0)` })
+      .from(paymentInstallments)
+      .innerJoin(registrations, eq(paymentInstallments.registrationId, registrations.id))
+      .where(
+        and(
+          eq(registrations.groupId, groupId),
+          eq(paymentInstallments.status, 'pending'),
+          // Filtrar apenas inscrições ativas (não canceladas)
+          sql`${registrations.status} IN ('confirmed', 'pending_payment')`
+        )
+      );
+    return result[0]?.total || 0;
   }
 
   async getGroupTotalRevenue(groupId: string): Promise<number> {
@@ -1467,8 +1639,18 @@ export class DatabaseStorage implements IStorage {
       .where(eq(events.id, group[0].eventId))
       .limit(1);
 
-    if (event.length > 0 && event[0].organizerId === userId) {
-      return true;
+    if (event.length > 0) {
+      // Verificar se é organizador principal
+      if (event[0].organizerId === userId) {
+        return true;
+      }
+
+      // Verificar se é organizador adicional
+      const organizers = await this.getEventOrganizers(group[0].eventId);
+      const isAdditionalOrganizer = organizers.some(org => org.userId === userId);
+      if (isAdditionalOrganizer) {
+        return true;
+      }
     }
 
     // Verificar se é gestor do grupo
@@ -1576,6 +1758,21 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Mark installment as paid
+  async isEventOrganizer(eventId: string, userId: string): Promise<boolean> {
+    const result = await db
+      .select()
+      .from(eventOrganizers)
+      .where(
+        and(
+          eq(eventOrganizers.eventId, eventId),
+          eq(eventOrganizers.userId, userId)
+        )
+      )
+      .limit(1);
+    
+    return result.length > 0;
+  }
+
   async markInstallmentAsPaid(installmentId: string, updatedBy: string): Promise<void> {
     // Primeiro, marcar a parcela como paga
     await db
@@ -1596,14 +1793,36 @@ export class DatabaseStorage implements IStorage {
 
     // Calcular o total pago de todas as parcelas desta inscrição
     const allInstallments = await this.getRegistrationInstallments(installment.registrationId);
-    const totalPaid = allInstallments
-      .filter(inst => inst.status === 'paid')
-      .reduce((sum, inst) => sum + parseFloat(inst.originalAmount || '0'), 0);
+    console.log('=== DEBUG MARK INSTALLMENT AS PAID ===');
+    console.log('Registration ID:', installment.registrationId);
+    console.log('All installments:', allInstallments.length);
+    allInstallments.forEach((inst, index) => {
+      console.log(`Installment ${index + 1}:`, {
+        id: inst.id,
+        status: inst.status,
+        originalAmount: inst.originalAmount,
+        paidAmount: inst.paidAmount,
+        installmentNumber: inst.installmentNumber
+      });
+    });
+    
+    const paidInstallments = allInstallments.filter(inst => inst.status === 'paid');
+    console.log('Paid installments:', paidInstallments.length);
+    
+    const totalPaid = paidInstallments.reduce((sum, inst) => {
+      const amount = parseFloat(inst.paidAmount || '0');
+      console.log(`Adding ${amount} from installment ${inst.installmentNumber}`);
+      return sum + amount;
+    }, 0);
+    
+    console.log('Total paid calculated:', totalPaid);
 
     // Atualizar o amountPaid da inscrição
     await this.updateRegistration(installment.registrationId, {
       amountPaid: totalPaid.toString()
     });
+    
+    console.log('=== END DEBUG MARK INSTALLMENT AS PAID ===');
   }
 }
 

@@ -4,13 +4,11 @@ import { Link, useLocation } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { isUnauthorizedError } from "@/lib/authUtils";
-import { Calendar, Users, CreditCard, BarChart3, Dice2, Plus, Zap } from "lucide-react";
+import { Calendar, Users, CreditCard, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import StatsCard from "@/components/ui/stats-card";
 import EventCard from "@/components/ui/event-card";
-import TemplateCard from "@/components/ui/template-card";
-import AnalyticsChart from "@/components/ui/analytics-chart";
 import Layout from "@/components/layout/Layout";
 import { useGlobalNotifications } from "@/hooks/useGlobalNotifications";
 import { usePusher } from "@/hooks/usePusher";
@@ -77,25 +75,16 @@ export default function Dashboard() {
   // Fetch dashboard data
   const { data: stats, isLoading: statsLoading } = useQuery({
     queryKey: ["/api/dashboard/stats"],
-    enabled: !!user,
+    enabled: !!user && !authLoading,
     retry: false,
   }) as { data: any, isLoading: boolean };
 
   const { data: events, isLoading: eventsLoading } = useQuery({
     queryKey: ["/api/events"],
-    enabled: !!user,
+    enabled: !!user && !authLoading,
     retry: false,
   }) as { data: any[], isLoading: boolean };
 
-  const { data: categories } = useQuery({
-    queryKey: ["/api/categories"],
-    retry: false,
-  }) as { data: any[] };
-
-  const { data: templates } = useQuery({
-    queryKey: ["/api/templates"],
-    retry: false,
-  }) as { data: any[] };
 
   if (authLoading) {
     return (
@@ -149,7 +138,7 @@ export default function Dashboard() {
                   className="border-orange-200 text-orange-700 hover:bg-orange-50"
                   title="Testar integração PIX"
                 >
-                  <Zap className="w-4 h-4 mr-2" />
+                  <Plus className="w-4 h-4 mr-2" />
                   Teste PIX
                 </Button>
               )}
@@ -158,11 +147,11 @@ export default function Dashboard() {
         </div>
 
         {/* Stats Overview */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
           <StatsCard
             title="Total de Eventos"
             value={statsLoading ? "..." : (stats?.totalEvents?.toString() || "0")}
-            change="+12% este mês"
+            change=""
             icon={Calendar}
             color="primary"
             data-testid="stats-total-events"
@@ -170,7 +159,7 @@ export default function Dashboard() {
           <StatsCard
             title="Participantes"
             value={statsLoading ? "..." : (stats?.totalParticipants?.toString() || "0")}
-            change="+28% este mês"
+            change=""
             icon={Users}
             color="secondary"
             data-testid="stats-total-participants"
@@ -178,24 +167,16 @@ export default function Dashboard() {
           <StatsCard
             title="Receita"
             value={statsLoading ? "..." : (stats?.totalRevenue || "R$ 0")}
-            change="+18% este mês"
+            change=""
             icon={CreditCard}
             color="accent"
             data-testid="stats-total-revenue"
           />
-          <StatsCard
-            title="Taxa de Conversão"
-            value={statsLoading ? "..." : (stats?.conversionRate || "0%")}
-            change="+5,2% este mês"
-            icon={BarChart3}
-            color="purple"
-            data-testid="stats-conversion-rate"
-          />
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Left Column - Recent Events & Quick Actions */}
-          <div className="lg:col-span-2 space-y-6">
+        <div className="space-y-6">
+          {/* Recent Events */}
+          <div className="space-y-6">
             
             {/* Recent Events */}
             <Card data-testid="card-recent-events">
@@ -245,86 +226,6 @@ export default function Dashboard() {
               </CardContent>
             </Card>
 
-            {/* Template Selector */}
-            <Card data-testid="card-template-selector">
-              <CardHeader className="border-b">
-                <CardTitle>Crie um Novo Evento</CardTitle>
-                <p className="text-sm text-gray-600">Escolha um template profissional para começar rapidamente</p>
-              </CardHeader>
-              <CardContent className="p-6">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {Array.isArray(categories) ? categories.slice(0, 4).map((category: any) => {
-                    const categoryTemplates = Array.isArray(templates) ? templates.filter((t: any) => t.categoryId === category.id) : [];
-                    return (
-                      <TemplateCard
-                        key={category.id}
-                        category={category}
-                        templateCount={categoryTemplates.length}
-                        onClick={() => setLocation(`/editor?category=${category.id}`)}
-                      />
-                    );
-                  }) : null}
-                </div>
-              </CardContent>
-            </Card>
-
-          </div>
-
-          {/* Right Column - Analytics & Payment Methods */}
-          <div className="space-y-6">
-            
-            {/* Analytics Chart */}
-            <AnalyticsChart />
-
-            {/* Quick Actions */}
-            <Card data-testid="card-quick-actions">
-              <CardHeader className="border-b">
-                <CardTitle>Ações Rápidas</CardTitle>
-              </CardHeader>
-              <CardContent className="p-6 space-y-3">
-                <Button 
-                  variant="ghost" 
-                  className="w-full justify-start p-3 h-auto"
-                  data-testid="button-generate-qr"
-                >
-                  <div className="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center mr-3">
-                    <BarChart3 className="w-4 h-4 text-purple-600" />
-                  </div>
-                  <div className="text-left">
-                    <p className="text-sm font-medium text-gray-900">Gerar QR Code</p>
-                    <p className="text-xs text-gray-500">Para check-in rápido</p>
-                  </div>
-                </Button>
-
-                <Button 
-                  variant="ghost" 
-                  className="w-full justify-start p-3 h-auto"
-                  data-testid="button-send-email"
-                >
-                  <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center mr-3">
-                    <Users className="w-4 h-4 text-green-600" />
-                  </div>
-                  <div className="text-left">
-                    <p className="text-sm font-medium text-gray-900">Enviar Email</p>
-                    <p className="text-xs text-gray-500">Comunicação em massa</p>
-                  </div>
-                </Button>
-
-                <Button 
-                  variant="ghost" 
-                  className="w-full justify-start p-3 h-auto"
-                  data-testid="button-export-data"
-                >
-                  <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center mr-3">
-                    <BarChart3 className="w-4 h-4 text-blue-600" />
-                  </div>
-                  <div className="text-left">
-                    <p className="text-sm font-medium text-gray-900">Exportar Dados</p>
-                    <p className="text-xs text-gray-500">Relatórios e listas</p>
-                  </div>
-                </Button>
-              </CardContent>
-            </Card>
 
           </div>
         </div>

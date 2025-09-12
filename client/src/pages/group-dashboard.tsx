@@ -148,13 +148,16 @@ export default function GroupDashboard() {
             <RefreshCw className={`w-4 h-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
             Atualizar
           </Button>
-          <Button 
-            onClick={() => setLocation('/events')}
-            className="w-full sm:w-auto"
-          >
-            <Settings className="w-4 h-4 mr-2" />
-            Gerenciar Eventos
-          </Button>
+          {/* Botão "Gerenciar Eventos" apenas para admin e organizer */}
+          {(user?.role === 'admin' || user?.role === 'organizer') && (
+            <Button 
+              onClick={() => setLocation('/events')}
+              className="w-full sm:w-auto"
+            >
+              <Settings className="w-4 h-4 mr-2" />
+              Gerenciar Eventos
+            </Button>
+          )}
         </div>
       </div>
 

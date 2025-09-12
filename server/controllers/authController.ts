@@ -184,4 +184,133 @@ export class AuthController {
       res.status(500).json({ message: "Erro interno do servidor" });
     }
   }
+
+  static async changePassword(req: any, res: Response) {
+    try {
+      const token = extractTokenFromHeader(req.headers.authorization);
+      if (!token) {
+        return res.status(401).json({ message: "Token não fornecido" });
+      }
+      
+      const payload = verifyToken(token);
+      if (!payload) {
+        return res.status(401).json({ message: "Token inválido" });
+      }
+
+      const { currentPassword, newPassword } = req.body;
+
+      if (!currentPassword || !newPassword) {
+        return res.status(400).json({ message: "Senha atual e nova senha são obrigatórias" });
+      }
+
+      if (newPassword.length < 6) {
+        return res.status(400).json({ message: "A nova senha deve ter pelo menos 6 caracteres" });
+      }
+
+      // Buscar usuário
+      const user = await storage.getUser(payload.userId);
+      if (!user) {
+        return res.status(404).json({ message: "Usuário não encontrado" });
+      }
+
+      // Verificar senha atual
+      const isValidPassword = await bcrypt.compare(currentPassword, user.passwordHash);
+      if (!isValidPassword) {
+        return res.status(401).json({ message: "Senha atual incorreta" });
+      }
+
+      // Hash da nova senha
+      const saltRounds = 12;
+      const newPasswordHash = await bcrypt.hash(newPassword, saltRounds);
+
+      // Atualizar senha
+      await storage.updateUser(payload.userId, {
+        passwordHash: newPasswordHash,
+        updatedAt: new Date()
+      });
+
+      res.json({ message: "Senha alterada com sucesso" });
+    } catch (error) {
+      console.error("Error changing password:", error);
+      res.status(500).json({ message: "Erro interno do servidor" });
+    }
+  }
+
+  static async forgotPassword(req: Request, res: Response) {
+    try {
+      const { email } = req.body;
+
+      if (!email) {
+        return res.status(400).json({ message: "Email é obrigatório" });
+      }
+
+      // Buscar usuário por email
+      const user = await storage.getUserByEmail(email);
+      if (!user) {
+        // Por segurança, não revelamos se o email existe ou não
+        return res.json({ message: "Se o email existir, você receberá instruções de recuperação" });
+      }
+
+      // Gerar token de recuperação (válido por 1 hora)
+      const resetToken = generateToken({
+        userId: user.id,
+        email: user.email || '',
+        purpose: 'password_reset'
+      }, '1h');
+
+      // TODO: Implementar envio de email com Resend
+      // Por enquanto, apenas logamos o token (em produção, enviar por email)
+      console.log(`Password reset token for ${email}: ${resetToken}`);
+
+      res.json({ 
+        message: "Se o email existir, você receberá instruções de recuperação",
+        // Em desenvolvimento, retornar o token para facilitar testes
+        ...(process.env.NODE_ENV === 'development' && { resetToken })
+      });
+    } catch (error) {
+      console.error("Error in forgot password:", error);
+      res.status(500).json({ message: "Erro interno do servidor" });
+    }
+  }
+
+  static async resetPassword(req: Request, res: Response) {
+    try {
+      const { token, newPassword } = req.body;
+
+      if (!token || !newPassword) {
+        return res.status(400).json({ message: "Token e nova senha são obrigatórios" });
+      }
+
+      if (newPassword.length < 6) {
+        return res.status(400).json({ message: "A nova senha deve ter pelo menos 6 caracteres" });
+      }
+
+      // Verificar token
+      const payload = verifyToken(token);
+      if (!payload || payload.purpose !== 'password_reset') {
+        return res.status(401).json({ message: "Token inválido ou expirado" });
+      }
+
+      // Buscar usuário
+      const user = await storage.getUser(payload.userId);
+      if (!user) {
+        return res.status(404).json({ message: "Usuário não encontrado" });
+      }
+
+      // Hash da nova senha
+      const saltRounds = 12;
+      const newPasswordHash = await bcrypt.hash(newPassword, saltRounds);
+
+      // Atualizar senha
+      await storage.updateUser(payload.userId, {
+        passwordHash: newPasswordHash,
+        updatedAt: new Date()
+      });
+
+      res.json({ message: "Senha redefinida com sucesso" });
+    } catch (error) {
+      console.error("Error resetting password:", error);
+      res.status(500).json({ message: "Erro interno do servidor" });
+    }
+  }
 }

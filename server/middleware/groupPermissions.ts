@@ -40,10 +40,19 @@ export const requireGroupPermission = (requiredPermission: string) => {
       const group = await storage.getGroupById(groupId);
       if (group?.eventId) {
         const event = await storage.getEventById(group.eventId);
-        if (event?.organizerId === userId) {
-          console.log('✅ Usuário é organizador do evento - acesso total');
-          req.groupPermissions = ['read', 'write', 'payments', 'participants'];
-          return next();
+        if (event) {
+          // Verificar se é organizador principal
+          const isMainOrganizer = event.organizerId === userId;
+          
+          // Verificar se é organizador adicional
+          const organizers = await storage.getEventOrganizers(group.eventId);
+          const isAdditionalOrganizer = organizers.some(org => org.userId === userId);
+          
+          if (isMainOrganizer || isAdditionalOrganizer) {
+            console.log('✅ Usuário é organizador do evento - acesso total');
+            req.groupPermissions = ['read', 'write', 'payments', 'participants'];
+            return next();
+          }
         }
       }
 
@@ -113,10 +122,19 @@ export const requireAnyGroupPermission = (permissions: string[]) => {
       const group = await storage.getGroupById(groupId);
       if (group?.eventId) {
         const event = await storage.getEventById(group.eventId);
-        if (event?.organizerId === userId) {
-          console.log('✅ Usuário é organizador do evento - acesso total');
-          req.groupPermissions = ['read', 'write', 'payments', 'participants'];
-          return next();
+        if (event) {
+          // Verificar se é organizador principal
+          const isMainOrganizer = event.organizerId === userId;
+          
+          // Verificar se é organizador adicional
+          const organizers = await storage.getEventOrganizers(group.eventId);
+          const isAdditionalOrganizer = organizers.some(org => org.userId === userId);
+          
+          if (isMainOrganizer || isAdditionalOrganizer) {
+            console.log('✅ Usuário é organizador do evento - acesso total');
+            req.groupPermissions = ['read', 'write', 'payments', 'participants'];
+            return next();
+          }
         }
       }
 

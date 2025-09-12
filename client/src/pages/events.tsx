@@ -10,19 +10,33 @@ import Layout from "@/components/layout/Layout";
 import { useState } from "react";
 
 export default function Events() {
-  const { user } = useAuth();
+  const { user, isLoading: authLoading } = useAuth();
   const [, setLocation] = useLocation();
   const [searchTerm, setSearchTerm] = useState("");
 
   const { data: events, isLoading } = useQuery({
     queryKey: ["/api/events"],
-    enabled: !!user,
+    enabled: !!user && !authLoading,
   }) as { data: any[], isLoading: boolean };
 
   const filteredEvents = Array.isArray(events) ? events.filter((event: any) => 
     event.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
     event.description?.toLowerCase().includes(searchTerm.toLowerCase())
   ) : [];
+
+  // Show loading while authentication is being checked
+  if (authLoading) {
+    return (
+      <Layout currentPage="events">
+        <div className="min-h-screen flex items-center justify-center bg-gray-50">
+          <div className="text-center">
+            <div className="w-8 h-8 border-4 border-primary-200 border-t-primary rounded-full animate-spin mx-auto mb-4"></div>
+            <p className="text-gray-600">Carregando...</p>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
 
   return (
     <Layout currentPage="events">

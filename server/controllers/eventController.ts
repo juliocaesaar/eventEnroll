@@ -138,16 +138,42 @@ export class EventController {
         const eventId = channel_name.replace('private-event-', '');
         console.log('Event ID:', eventId);
         
-        // Verificar se o usuário tem acesso ao evento
-        const event = await storage.getEvent(eventId);
-        if (!event || event.organizerId !== debugUserId) {
-          console.log('❌ User does not have access to event');
-          return res.status(403).json({ message: "Forbidden" });
+        try {
+          // Verificar se o usuário tem acesso ao evento
+          const event = await storage.getEvent(eventId);
+          console.log('Event found:', !!event);
+          if (!event) {
+            console.log('❌ Event not found');
+            return res.status(404).json({ message: "Event not found" });
+          }
+          
+          // Verificar se o usuário é o organizador principal ou um organizador adicional
+          const isMainOrganizer = event.organizerId === debugUserId;
+          console.log('Is main organizer:', isMainOrganizer);
+          
+          const organizers = await storage.getEventOrganizers(eventId);
+          console.log('Event organizers found:', organizers.length);
+          const isAdditionalOrganizer = organizers.some(org => org.userId === debugUserId);
+          console.log('Is additional organizer:', isAdditionalOrganizer);
+          
+          if (!isMainOrganizer && !isAdditionalOrganizer) {
+            console.log('❌ User does not have access to event');
+            return res.status(403).json({ message: "Forbidden" });
+          }
+          
+          console.log('✅ User has access to event');
+        } catch (error) {
+          console.error('❌ Error checking event access:', error);
+          return res.status(500).json({ message: "Internal server error" });
         }
       }
 
       // Autenticar com Pusher
       console.log('🔐 Authenticating with Pusher...');
+      console.log('Socket ID:', socket_id);
+      console.log('Channel Name:', channel_name);
+      console.log('User ID:', debugUserId);
+      
       const pusher = require('../config/pusher').pusher;
       
       const auth = pusher.authenticate(socket_id, channel_name, {
@@ -1269,12 +1295,19 @@ export class EventController {
       }
 
       const userId = req.user?.userId;
+      const userRole = req.user?.role;
       if (!userId) {
         return res.status(401).json({ message: "User not authenticated" });
       }
 
-      if (event.organizerId !== userId) {
-        return res.status(403).json({ message: "Access denied" });
+      // Verificar se o usuário é admin ou organizador do evento (principal ou adicional)
+      if (userRole !== 'admin') {
+        const isMainOrganizer = event.organizerId === userId;
+        const isAdditionalOrganizer = await storage.isEventOrganizer(req.params.eventId, userId);
+        
+        if (!isMainOrganizer && !isAdditionalOrganizer) {
+          return res.status(403).json({ message: "Access denied" });
+        }
       }
 
       const participants = await storage.getEventParticipantsWithInstallments(req.params.eventId);
@@ -1311,8 +1344,14 @@ export class EventController {
         return res.status(404).json({ message: "Event not found" });
       }
 
-      // Verificar se é organizador do evento
-      const isOrganizer = event.organizerId === userId;
+      // Verificar se é organizador principal
+      const isMainOrganizer = event.organizerId === userId;
+      
+      // Verificar se é organizador adicional
+      const organizers = await storage.getEventOrganizers(event.id);
+      const isAdditionalOrganizer = organizers.some(org => org.userId === userId);
+      
+      const isOrganizer = isMainOrganizer || isAdditionalOrganizer;
       
       // Verificar se é gestor do grupo (se a inscrição tem grupo)
       let isGroupManager = false;

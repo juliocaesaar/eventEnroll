@@ -4,7 +4,7 @@ import { usePusher, PusherNotification } from './usePusher';
 import { useAuth } from './useAuth';
 
 export const useEventRegistrations = (eventId: string) => {
-  const { user } = useAuth();
+  const { user, isLoading: authLoading } = useAuth();
   const { isConnected, connectToEventChannel, disconnectFromEventChannel } = usePusher();
   const queryClient = useQueryClient();
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
@@ -12,7 +12,7 @@ export const useEventRegistrations = (eventId: string) => {
   // Query para buscar registrations
   const { data: registrations, isLoading, error } = useQuery({
     queryKey: ['/api/events', eventId, 'registrations'],
-    enabled: !!eventId && !!user,
+    enabled: !!eventId && !!user && !authLoading,
   });
 
   useEffect(() => {

@@ -2,8 +2,9 @@ import { useRoute, useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import Layout from "@/components/layout/Layout";
-import { ArrowLeft, Users, TrendingUp, Settings } from "lucide-react";
+import { ArrowLeft, Users, TrendingUp, Settings, MoreVertical, ExternalLink, Settings2, Edit } from "lucide-react";
 import { useEventGroups } from "@/hooks/useEventGroups";
 import { useEventRegistrations } from "@/hooks/useEventRegistrations";
 
@@ -67,11 +68,11 @@ export default function EventDetails() {
     >
       <div data-testid="page-event-details">
         {/* Event Header */}
-        <div className="bg-card border rounded-lg p-6 mb-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <div className="flex items-center space-x-3">
-                <h1 className="text-2xl font-bold text-card-foreground" data-testid="text-event-title">{event?.title || 'Evento'}</h1>
+        <div className="bg-card border rounded-lg p-4 sm:p-6 mb-6">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+            <div className="flex-1 min-w-0">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
+                <h1 className="text-xl sm:text-2xl font-bold text-card-foreground truncate" data-testid="text-event-title">{event?.title || 'Evento'}</h1>
                 {isConnected && (
                   <div className="flex items-center space-x-1 text-green-600 dark:text-green-400">
                     <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
@@ -79,48 +80,82 @@ export default function EventDetails() {
                   </div>
                 )}
               </div>
-              <p className="text-muted-foreground" data-testid="text-event-slug">/{event?.slug || 'evento'}</p>
+              <p className="text-muted-foreground text-sm sm:text-base" data-testid="text-event-slug">/{event?.slug || 'evento'}</p>
               {lastUpdate && (
                 <p className="text-xs text-muted-foreground mt-1">
                   Última atualização: {lastUpdate.toLocaleTimeString('pt-BR')}
                 </p>
               )}
             </div>
-            <div className="flex space-x-2">
+            
+            {/* Botões responsivos */}
+            <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 w-full lg:w-auto">
+              {/* Botão principal - sempre visível */}
               <Button 
                 variant="outline" 
+                size="sm"
+                className="flex-1 sm:flex-none"
                 onClick={() => window.open(`/event/${event?.slug}`, '_blank')} 
                 data-testid="button-open-public"
               >
-                🔗 Ver Página Pública
+                <ExternalLink className="h-4 w-4 mr-2" />
+                <span className="hidden sm:inline">Ver Página Pública</span>
+                <span className="sm:hidden">Página Pública</span>
               </Button>
-              <Button 
-                variant="outline"
-                onClick={() => setLocation(`/events/${event?.id}/groups`)} 
-                data-testid="button-manage-groups"
-              >
-                👥 Gerenciar Grupos
-              </Button>
-              <Button 
-                variant="outline"
-                onClick={() => setLocation(`/events/${event?.id}/payments`)} 
-                data-testid="button-manage-payments"
-              >
-                💰 Pagamentos
-              </Button>
-              <Button 
-                variant="outline"
-                onClick={() => setLocation(`/events/${event?.id}/manage`)} 
-                data-testid="button-manage-event"
-              >
-                ⚙️ Gerenciar Evento
-              </Button>
-              <Button 
-                onClick={() => setLocation(`/editor?eventId=${event?.id}`)} 
-                data-testid="button-edit-event"
-              >
-                ✏️ Editar Evento
-              </Button>
+              
+              {/* Botões secundários - em dropdown para telas pequenas */}
+              <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
+                {/* Botões visíveis em telas médias e grandes */}
+                <div className="hidden sm:flex gap-2 sm:gap-3 flex-wrap">
+                  <Button 
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setLocation(`/events/${event?.id}/manage`)} 
+                    data-testid="button-manage-event"
+                    className="flex-shrink-0"
+                  >
+                    <Settings2 className="h-4 w-4 mr-2" />
+                    Gerenciar Evento
+                  </Button>
+                  <Button 
+                    size="sm"
+                    onClick={() => setLocation(`/editor?eventId=${event?.id}`)} 
+                    data-testid="button-edit-event"
+                    className="flex-shrink-0"
+                  >
+                    <Edit className="h-4 w-4 mr-2" />
+                    Editar Evento
+                  </Button>
+                </div>
+                
+                {/* Dropdown para telas pequenas */}
+                <div className="sm:hidden">
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="outline" size="sm" className="w-full">
+                        <MoreVertical className="h-4 w-4 mr-2" />
+                        Mais Ações
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-56">
+                      <DropdownMenuItem 
+                        onClick={() => setLocation(`/events/${event?.id}/manage`)}
+                        data-testid="dropdown-manage-event"
+                      >
+                        <Settings2 className="h-4 w-4 mr-2" />
+                        Gerenciar Evento
+                      </DropdownMenuItem>
+                      <DropdownMenuItem 
+                        onClick={() => setLocation(`/editor?eventId=${event?.id}`)}
+                        data-testid="dropdown-edit-event"
+                      >
+                        <Edit className="h-4 w-4 mr-2" />
+                        Editar Evento
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+              </div>
             </div>
           </div>
         </div>

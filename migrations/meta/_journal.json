@@ -64,6 +64,13 @@
       "when": 1757352081926,
       "tag": "0008_zippy_paibok",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1757602771267,
+      "tag": "0009_complete_mole_man",
+      "breakpoints": true
     }
   ]
 }

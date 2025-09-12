@@ -49,6 +49,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/auth/validate', isAuthenticated, AuthController.validateToken);
   app.get('/api/auth/user', isAuthenticated, AuthController.getUser);
   app.put('/api/auth/user', isAuthenticated, AuthController.updateUserProfile);
+  app.put('/api/auth/change-password', isAuthenticated, AuthController.changePassword);
+  app.post('/api/auth/forgot-password', AuthController.forgotPassword);
+  app.post('/api/auth/reset-password', AuthController.resetPassword);
 
   // User management routes (admin only)
   app.get('/api/users', isAuthenticated, UserController.getAllUsers);
@@ -118,6 +121,8 @@ app.put('/api/installments/:installmentId/mark-as-paid', isAuthenticated, EventC
   // Group specific routes
   app.get('/api/groups/:groupId/participants', isAuthenticated, requireGroupParticipants, GroupController.getGroupParticipants);
   app.get('/api/groups/:groupId/participants/:participantId', isAuthenticated, requireGroupParticipants, GroupController.getGroupParticipant);
+  app.put('/api/groups/:groupId/participants/:participantId', isAuthenticated, requireGroupParticipants, GroupController.updateGroupParticipant);
+  app.delete('/api/groups/:groupId/participants/:participantId', isAuthenticated, requireGroupParticipants, GroupController.removeGroupParticipant);
   app.get('/api/groups/:groupId/payments', isAuthenticated, requireGroupPayments, GroupController.getGroupPayments);
 
   // Payment Plan routes
@@ -180,8 +185,8 @@ app.put('/api/installments/:installmentId/mark-as-paid', isAuthenticated, EventC
               const { verifyToken } = await import('../config/jwt');
               const payload = verifyToken(token);
               if (payload) {
-                req.user = payload;
-                return next();
+                (req as any).user = payload;
+                return EventController.authenticatePusher(req, res);
               }
             }
             
@@ -199,8 +204,8 @@ app.put('/api/installments/:installmentId/mark-as-paid', isAuthenticated, EventC
           const { verifyToken } = await import('../config/jwt');
           const payload = verifyToken(token);
           if (payload) {
-            req.user = payload;
-            return next();
+            (req as any).user = payload;
+            return EventController.authenticatePusher(req, res);
           }
         }
         
@@ -210,7 +215,7 @@ app.put('/api/installments/:installmentId/mark-as-paid', isAuthenticated, EventC
       console.error("Error in Pusher auth middleware:", error);
       return res.status(401).json({ message: "Token inválido" });
     }
-  }, EventController.authenticatePusher);
+  });
   
   // Pusher test route (development only)
   if (process.env.NODE_ENV === 'development') {

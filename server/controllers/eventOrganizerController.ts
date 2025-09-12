@@ -96,7 +96,7 @@ export class EventOrganizerController {
         eventId,
         userId: organizerUserId,
         role: role || 'organizer',
-        permissions: permissions || ['read', 'write', 'participants', 'payments'],
+        permissions: permissions || { read: true, write: true, participants: true, payments: true },
         assignedAt: new Date(),
         createdAt: new Date(),
         updatedAt: new Date(),

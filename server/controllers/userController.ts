@@ -84,7 +84,7 @@ export class UserController {
     }
   }
 
-  // Listar todos os usuários (apenas admin)
+  // Listar todos os usuários (admin e organizadores)
   static async getAllUsers(req: any, res: Response) {
     try {
       const userId = req.user?.userId;
@@ -92,10 +92,10 @@ export class UserController {
         return res.status(401).json({ message: "User not authenticated" });
       }
 
-      // Verificar se o usuário é admin
+      // Verificar se o usuário é admin ou organizador
       const currentUser = await storage.getUser(userId);
-      if (!currentUser || currentUser.role !== 'admin') {
-        return res.status(403).json({ message: "Access denied. Admin role required." });
+      if (!currentUser || (currentUser.role !== 'admin' && currentUser.role !== 'organizer')) {
+        return res.status(403).json({ message: "Access denied. Admin or organizer role required." });
       }
 
       const users = await storage.getAllUsers();
@@ -232,8 +232,19 @@ export class UserController {
       // Verificar se o usuário é organizador do evento (se não for admin)
       if (currentUser.role !== 'admin') {
         const event = await storage.getEvent(group.eventId);
-        if (!event || event.organizerId !== userId) {
-          return res.status(403).json({ message: "Access denied. You can only assign managers to your own events." });
+        if (!event) {
+          return res.status(404).json({ message: "Event not found" });
+        }
+
+        // Verificar se é organizador principal
+        const isMainOrganizer = event.organizerId === userId;
+        
+        // Verificar se é organizador adicional
+        const organizers = await storage.getEventOrganizers(event.id);
+        const isAdditionalOrganizer = organizers.some(org => org.userId === userId);
+        
+        if (!isMainOrganizer && !isAdditionalOrganizer) {
+          return res.status(403).json({ message: "Access denied. You can only assign managers to events you organize." });
         }
       }
 
@@ -300,8 +311,19 @@ export class UserController {
       // Verificar se o usuário é organizador do evento (se não for admin)
       if (currentUser.role !== 'admin') {
         const event = await storage.getEvent(group.eventId);
-        if (!event || event.organizerId !== userId) {
-          return res.status(403).json({ message: "Access denied. You can only remove managers from your own events." });
+        if (!event) {
+          return res.status(404).json({ message: "Event not found" });
+        }
+
+        // Verificar se é organizador principal
+        const isMainOrganizer = event.organizerId === userId;
+        
+        // Verificar se é organizador adicional
+        const organizers = await storage.getEventOrganizers(event.id);
+        const isAdditionalOrganizer = organizers.some(org => org.userId === userId);
+        
+        if (!isMainOrganizer && !isAdditionalOrganizer) {
+          return res.status(403).json({ message: "Access denied. You can only remove managers from events you organize." });
         }
       }
 
