@@ -1,7 +1,6 @@
 import { ReactNode } from 'react';
 import { useLocation } from 'wouter';
 import Header from './Header';
-import MobileNav from '../ui/mobile-nav';
 import { usePusher } from '@/hooks/usePusher';
 
 interface LayoutProps {
@@ -124,9 +123,6 @@ export default function Layout({
           </div>
         </div>
       </main>
-
-      {/* Mobile Navigation */}
-      <MobileNav />
     </div>
   );
 }
