@@ -324,13 +324,25 @@ export class EventController {
       }
       
       // Check if user owns the event
-      const userId = req.session?.user?.id;
+      const userId = req.user?.userId;
+      const userRole = req.user?.role;
+      
       if (!userId) {
         return res.status(401).json({ message: "User not authenticated" });
       }
       
+      // Admin pode acessar qualquer evento
+      if (userRole === 'admin') {
+        return res.json(event);
+      }
+      
+      // Verificar se é organizador principal
       if (event.organizerId !== userId) {
-        return res.status(403).json({ message: "Access denied" });
+        // Verificar se é organizador adicional
+        const isAdditionalOrganizer = await storage.isEventOrganizer(req.params.id, userId);
+        if (!isAdditionalOrganizer) {
+          return res.status(403).json({ message: "Access denied" });
+        }
       }
       
       res.json(event);

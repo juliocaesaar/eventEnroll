@@ -13,10 +13,20 @@ export default function EventDetails() {
   const [match, params] = useRoute("/events/:eventId");
   const [, setLocation] = useLocation();
 
-  const { data: event, isLoading: eventLoading } = useQuery({
+  const { data: event, isLoading: eventLoading, error: eventError } = useQuery({
     queryKey: ['/api/events', params?.eventId],
     enabled: !!params?.eventId,
-  }) as { data: any, isLoading: boolean };
+    retry: 1, // Apenas 1 retry para evitar loops
+    staleTime: 2 * 60 * 1000, // 2 minutos de cache
+    gcTime: 5 * 60 * 1000, // 5 minutos de garbage collection
+    refetchOnWindowFocus: false, // Não refetch ao focar na janela
+    refetchOnMount: false, // Não refetch ao montar
+    refetchOnReconnect: false, // Não refetch ao reconectar
+    // Timeout para evitar carregamento infinito
+    meta: {
+      timeout: 10000, // 10 segundos de timeout
+    },
+  }) as { data: any, isLoading: boolean, error: any };
 
   const { groups, isLoading: groupsLoading } = useEventGroups(params?.eventId || '');
   const { registrations, isLoading: registrationsLoading, lastUpdate, isConnected } = useEventRegistrations(params?.eventId || '');
@@ -26,7 +36,37 @@ export default function EventDetails() {
   // Detectar se é mobile
   const isMobile = useMobile();
 
-  if (eventLoading || !event) {
+  // Debug logs (apenas em desenvolvimento)
+  if (process.env.NODE_ENV === 'development') {
+    console.log('Event Details Debug:', {
+      eventId: params?.eventId,
+      eventLoading,
+      eventError,
+      hasEvent: !!event,
+      eventData: event
+    });
+  }
+
+  // Tratar erro na query do evento
+  if (eventError) {
+    return (
+      <div className="min-h-screen bg-background p-6">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center">
+            <h1 className="text-2xl font-bold text-red-600 mb-4">Erro ao carregar evento</h1>
+            <p className="text-gray-600 mb-4">
+              {eventError.message || 'Ocorreu um erro ao carregar os dados do evento.'}
+            </p>
+            <Button onClick={() => window.location.reload()}>
+              Tentar Novamente
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (eventLoading) {
     return (
       <div className="min-h-screen bg-background p-6">
         <div className="max-w-6xl mx-auto">
@@ -42,6 +82,24 @@ export default function EventDetails() {
                 Carregando dados do evento...
               </div>
             )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!event) {
+    return (
+      <div className="min-h-screen bg-background p-6">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center">
+            <h1 className="text-2xl font-bold text-gray-900 mb-4">Evento não encontrado</h1>
+            <p className="text-gray-600 mb-4">
+              O evento que você está procurando não existe ou foi removido.
+            </p>
+            <Button onClick={() => setLocation('/events')}>
+              Voltar para Eventos
+            </Button>
           </div>
         </div>
       </div>
