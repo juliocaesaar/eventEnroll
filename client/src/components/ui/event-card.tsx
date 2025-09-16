@@ -92,30 +92,30 @@ export default function EventCard({ event }: EventCardProps) {
                 {event.capacity ? `0/${event.capacity} inscritos` : 'Capacidade ilimitada'}
               </span>
             </div>
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mt-2">
+            <div className="flex flex-col gap-2 mt-2">
               <p className="text-xs text-blue-600 truncate" data-testid={`text-public-link-${event.id}`}>
                 <span className="font-medium">Link público:</span> /event/{event.slug}
               </p>
-              <div className="flex space-x-1 flex-shrink-0">
+              <div className="flex flex-col sm:flex-row gap-2 sm:gap-1">
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
                     window.open(`/event/${event.slug}`, '_blank');
                   }}
-                  className="text-xs bg-blue-100 hover:bg-blue-200 text-blue-700 px-2 py-1 rounded font-medium transition-colors whitespace-nowrap"
+                  className="text-xs bg-blue-100 hover:bg-blue-200 text-blue-700 px-3 py-2 rounded font-medium transition-colors whitespace-nowrap w-full sm:w-auto"
                   data-testid={`button-open-public-${event.id}`}
                 >
-                  🔗 Abrir
+                  🔗 Abrir Página Pública
                 </button>
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
                     navigator.clipboard.writeText(`${window.location.origin}/event/${event.slug}`);
                   }}
-                  className="text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 px-2 py-1 rounded font-medium transition-colors whitespace-nowrap"
+                  className="text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-2 rounded font-medium transition-colors whitespace-nowrap w-full sm:w-auto"
                   data-testid={`button-copy-link-${event.id}`}
                 >
-                  📋 Copiar
+                  📋 Copiar Link
                 </button>
               </div>
             </div>

@@ -156,12 +156,12 @@ export default function EventDetails() {
             </div>
             
             {/* Botões responsivos */}
-            <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 w-full lg:w-auto">
+            <div className="flex flex-col gap-3 w-full lg:w-auto">
               {/* Botão principal - sempre visível */}
               <Button 
                 variant="outline" 
                 size="sm"
-                className="flex-1 sm:flex-none"
+                className="w-full sm:w-auto"
                 onClick={() => window.open(`/event/${event?.slug}`, '_blank')} 
                 data-testid="button-open-public"
               >
@@ -170,7 +170,7 @@ export default function EventDetails() {
                 <span className="sm:hidden">Página Pública</span>
               </Button>
               
-              {/* Botões secundários - em dropdown para telas pequenas */}
+              {/* Botões secundários - empilhados no mobile */}
               <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
                 {/* Botões visíveis em telas médias e grandes */}
                 <div className="hidden sm:flex gap-2 sm:gap-3 flex-wrap">
@@ -195,8 +195,8 @@ export default function EventDetails() {
                   </Button>
                 </div>
                 
-                {/* Dropdown para telas pequenas */}
-                <div className="sm:hidden">
+                {/* Botões empilhados para mobile */}
+                <div className="sm:hidden flex flex-col gap-2">
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button variant="outline" size="sm" className="w-full">
