@@ -74,7 +74,7 @@ export default function GroupPayments() {
       if (paymentStatusFilter && paymentStatusFilter !== 'all') params.append('paymentStatus', paymentStatusFilter);
       
       const response = await apiRequest('GET', `/api/events/${eventId}/registrations?${params.toString()}`);
-      return response;
+      return Array.isArray(response) ? response : (response as any).data || [];
     },
   });
 
@@ -310,12 +310,15 @@ export default function GroupPayments() {
                       </div>
                     </div>
                     
-                    <div className="flex items-center space-x-3">
-                      {getRegistrationStatusBadge(registration.status)}
-                      {getPaymentStatusBadge(registration.paymentStatus)}
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
+                      <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
+                        {getRegistrationStatusBadge(registration.status)}
+                        {getPaymentStatusBadge(registration.paymentStatus)}
+                      </div>
                       <Button
                         size="sm"
                         onClick={() => setSelectedRegistration(registration.id)}
+                        className="w-full sm:w-auto"
                       >
                         Gerenciar Pagamentos
                       </Button>

@@ -79,20 +79,24 @@ export const GroupList: React.FC<GroupListProps> = ({
                   {group.status === 'active' ? 'Ativo' : 'Inativo'}
                 </Badge>
               </div>
-              <div className="flex items-center space-x-2">
+              <div className="flex flex-col sm:flex-row gap-2 sm:gap-1">
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() => onEditGroup?.(group.id)}
+                  className="w-full sm:w-auto"
                 >
-                  <Edit className="h-4 w-4" />
+                  <Edit className="h-4 w-4 mr-1 sm:mr-0" />
+                  <span className="sm:hidden">Editar</span>
                 </Button>
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() => onManageGroup?.(group.id)}
+                  className="w-full sm:w-auto"
                 >
-                  <Settings className="h-4 w-4" />
+                  <Settings className="h-4 w-4 mr-1 sm:mr-0" />
+                  <span className="sm:hidden">Gerenciar</span>
                 </Button>
                 <Button
                   variant="outline"
@@ -103,9 +107,10 @@ export const GroupList: React.FC<GroupListProps> = ({
                       onDeleteGroup?.(group.id);
                     }
                   }}
-                  className="text-red-600 hover:text-red-700"
+                  className="text-red-600 hover:text-red-700 w-full sm:w-auto"
                 >
-                  <Trash2 className="h-4 w-4" />
+                  <Trash2 className="h-4 w-4 mr-1 sm:mr-0" />
+                  <span className="sm:hidden">Excluir</span>
                 </Button>
               </div>
             </div>
