@@ -7,6 +7,7 @@ import Layout from "@/components/layout/Layout";
 import { ArrowLeft, Users, TrendingUp, Settings, MoreVertical, ExternalLink, Settings2, Edit } from "lucide-react";
 import { useEventGroups } from "@/hooks/useEventGroups";
 import { useEventRegistrations } from "@/hooks/useEventRegistrations";
+import { useMobile } from "@/hooks/useMobile";
 
 export default function EventDetails() {
   const [match, params] = useRoute("/events/:eventId");
@@ -22,17 +23,25 @@ export default function EventDetails() {
 
   if (!match) return null;
 
+  // Detectar se é mobile
+  const isMobile = useMobile();
+
   if (eventLoading || !event) {
     return (
       <div className="min-h-screen bg-background p-6">
         <div className="max-w-6xl mx-auto">
           <div className="animate-pulse">
             <div className="h-8 bg-muted rounded w-1/4 mb-6"></div>
-            <div className="grid md:grid-cols-3 gap-6">
+            <div className={`grid ${isMobile ? 'grid-cols-1' : 'md:grid-cols-3'} gap-6`}>
               {[1, 2, 3].map(i => (
                 <div key={i} className="h-32 bg-muted rounded"></div>
               ))}
             </div>
+            {isMobile && (
+              <div className="mt-4 text-center text-sm text-muted-foreground">
+                Carregando dados do evento...
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -318,6 +327,11 @@ export default function EventDetails() {
                     <div className="h-3 bg-muted rounded w-1/4"></div>
                   </div>
                 ))}
+                {isMobile && (
+                  <div className="text-center text-sm text-muted-foreground mt-4">
+                    {!isConnected ? 'Conectando...' : 'Carregando inscrições...'}
+                  </div>
+                )}
               </div>
             ) : Array.isArray(registrations) && registrations.length > 0 ? (
               <div className="space-y-4">

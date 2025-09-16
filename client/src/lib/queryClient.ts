@@ -82,14 +82,30 @@ export const queryClient = new QueryClient({
       refetchInterval: false,
       refetchOnWindowFocus: false,
       staleTime: 5 * 60 * 1000, // 5 minutos - cache mais inteligente
-      retry: 1, // Permitir 1 retry para melhor UX
+      retry: (failureCount, error: any) => {
+        // Não retry em mobile se for erro de rede
+        if (typeof window !== 'undefined' && window.innerWidth < 768) {
+          return failureCount < 1;
+        }
+        return failureCount < 2;
+      },
       gcTime: 10 * 60 * 1000, // 10 minutos - limpeza mais eficiente
-      // Otimizações de performance
+      // Otimizações de performance para mobile
       refetchOnMount: false,
       refetchOnReconnect: false,
+      // Configurações específicas para mobile
+      networkMode: 'online',
+      // Evitar refetch excessivo em mobile
+      refetchIntervalInBackground: false,
     },
     mutations: {
-      retry: 1, // Permitir 1 retry para mutations
+      retry: (failureCount, error: any) => {
+        // Menos retries em mobile
+        if (typeof window !== 'undefined' && window.innerWidth < 768) {
+          return failureCount < 1;
+        }
+        return failureCount < 2;
+      },
     },
   },
 });

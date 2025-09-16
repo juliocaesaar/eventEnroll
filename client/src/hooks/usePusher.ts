@@ -3,22 +3,33 @@ import Pusher from 'pusher-js';
 import { useAuth } from './useAuth';
 import { globalNotificationManager } from './useGlobalNotifications';
 
-// Configuração do Pusher
-const PUSHER_CONFIG = {
-  key: 'f0725138d607f195d650',
-  cluster: 'sa1',
-  authEndpoint: '/api/pusher/auth',
-  auth: {
-    headers: {
-      'Content-Type': 'application/x-www-form-urlencoded',
+// Configuração do Pusher otimizada para mobile
+const getPusherConfig = () => {
+  const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+  
+  return {
+    key: 'f0725138d607f195d650',
+    cluster: 'sa1',
+    authEndpoint: '/api/pusher/auth',
+    auth: {
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
     },
-  },
-  forceTLS: true,
-  enabledTransports: ['ws', 'wss'],
-  // Configurações de timeout para evitar travamentos
-  activityTimeout: 30000, // 30 segundos
-  pongTimeout: 6000, // 6 segundos
-  unavailableTimeout: 10000, // 10 segundos
+    forceTLS: true,
+    enabledTransports: isMobile ? ['wss', 'xhr_polling'] : ['ws', 'wss'], // Fallback para polling em mobile
+    // Configurações de timeout otimizadas para mobile
+    activityTimeout: isMobile ? 60000 : 30000, // 60s mobile, 30s desktop
+    pongTimeout: isMobile ? 10000 : 6000, // 10s mobile, 6s desktop
+    unavailableTimeout: isMobile ? 15000 : 10000, // 15s mobile, 10s desktop
+    // Configurações adicionais para mobile
+    ...(isMobile && {
+      // Usar polling como fallback em mobile
+      disabledTransports: ['ws'],
+      // Configurações de reconexão mais agressivas
+      enableStats: false,
+    }),
+  };
 };
 
 export interface PusherNotification {
@@ -91,18 +102,24 @@ class GlobalPusherManager {
 
     // Obter token do localStorage
     const token = localStorage.getItem('eventflow_token');
+    const config = getPusherConfig();
     
-    this.pusher = new Pusher(PUSHER_CONFIG.key, {
-      cluster: PUSHER_CONFIG.cluster,
-      authEndpoint: PUSHER_CONFIG.authEndpoint,
+    this.pusher = new Pusher(config.key, {
+      cluster: config.cluster,
+      authEndpoint: config.authEndpoint,
       auth: {
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
           ...(token && { 'Authorization': `Bearer ${token}` }),
         },
       },
-      forceTLS: PUSHER_CONFIG.forceTLS,
-      enabledTransports: PUSHER_CONFIG.enabledTransports as any,
+      forceTLS: config.forceTLS,
+      enabledTransports: config.enabledTransports as any,
+      disabledTransports: config.disabledTransports as any,
+      activityTimeout: config.activityTimeout,
+      pongTimeout: config.pongTimeout,
+      unavailableTimeout: config.unavailableTimeout,
+      enableStats: config.enableStats,
     });
 
     // Connection event handlers

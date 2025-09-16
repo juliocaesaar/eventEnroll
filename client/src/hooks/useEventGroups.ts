@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from './useAuth';
 import { apiRequest } from '../lib/queryClient';
+import { useMobile } from './useMobile';
 
 export interface EventGroup {
   id: string;
@@ -52,6 +53,7 @@ export interface AddManagerData {
 export const useEventGroups = (eventId: string) => {
   const { user, isLoading: authLoading } = useAuth();
   const queryClient = useQueryClient();
+  const isMobile = useMobile();
 
   const {
     data: groups,
@@ -60,6 +62,10 @@ export const useEventGroups = (eventId: string) => {
   } = useQuery({
     queryKey: ['/api/events', eventId, 'groups'],
     enabled: !!eventId && !!user && !authLoading,
+    // Configurações otimizadas para mobile
+    staleTime: isMobile ? 2 * 60 * 1000 : 5 * 60 * 1000, // 2 min mobile, 5 min desktop
+    gcTime: isMobile ? 5 * 60 * 1000 : 10 * 60 * 1000, // 5 min mobile, 10 min desktop
+    retry: isMobile ? 1 : 2, // Menos retries em mobile
   });
 
   const createGroupMutation = useMutation({
