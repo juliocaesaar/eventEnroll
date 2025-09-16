@@ -104,29 +104,30 @@ export default function Dashboard() {
     <Layout currentPage="dashboard">
         
         {/* Dashboard Header */}
-        <div className="mb-8">
-          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between">
-            <div className="mb-6 lg:mb-0">
-              <div className="flex items-center space-x-3 mb-2">
-                <h1 className="text-2xl font-bold text-gray-900" data-testid="text-welcome">
+        <div className="mb-6 sm:mb-8">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+            <div className="min-w-0 flex-1">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 mb-2">
+                <h1 className="text-xl sm:text-2xl font-bold text-gray-900 truncate" data-testid="text-welcome">
                   Bem-vindo de volta, {firstName}!
                 </h1>
                 
                 {/* Status da conexão Pusher */}
-                <div className="flex items-center space-x-1 bg-gray-50 px-2 py-1 rounded-md">
+                <div className="flex items-center space-x-1 bg-gray-50 px-2 py-1 rounded-md flex-shrink-0">
                   <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`}></div>
                   <span className="text-xs text-gray-600">
                     {isConnected ? 'Tempo Real' : 'Offline'}
                   </span>
                 </div>
               </div>
-              <p className="text-gray-600 mt-1">Gerencie seus eventos e acompanhe o desempenho em tempo real</p>
+              <p className="text-gray-600 text-sm sm:text-base">Gerencie seus eventos e acompanhe o desempenho em tempo real</p>
             </div>
-            <div className="flex flex-col sm:flex-row gap-3">
+            <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 flex-shrink-0">
               <Button 
                 variant="outline"
                 onClick={() => setLocation('/editor')}
                 data-testid="button-create-event"
+                className="w-full sm:w-auto"
               >
                 <Plus className="w-4 h-4 mr-2" />
                 Criar Evento
@@ -135,7 +136,7 @@ export default function Dashboard() {
                 <Button 
                   variant="outline"
                   onClick={() => setLocation('/pix-test')}
-                  className="border-orange-200 text-orange-700 hover:bg-orange-50"
+                  className="border-orange-200 text-orange-700 hover:bg-orange-50 w-full sm:w-auto"
                   title="Testar integração PIX"
                 >
                   <Plus className="w-4 h-4 mr-2" />
@@ -147,7 +148,7 @@ export default function Dashboard() {
         </div>
 
         {/* Stats Overview */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-6 sm:mb-8">
           <StatsCard
             title="Total de Eventos"
             value={statsLoading ? "..." : (stats?.totalEvents?.toString() || "0")}

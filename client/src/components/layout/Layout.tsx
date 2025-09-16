@@ -67,7 +67,7 @@ export default function Layout({
   const finalBreadcrumbs = getBreadcrumbs();
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 overflow-x-hidden">
       {/* Fixed Header */}
       <Header 
         showCreateButton={showCreateButton} 
@@ -118,8 +118,10 @@ export default function Layout({
         )}
 
         {/* Page Content */}
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          {children}
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 w-full">
+          <div className="w-full min-w-0">
+            {children}
+          </div>
         </div>
       </main>
 
